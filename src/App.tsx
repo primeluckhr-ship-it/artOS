@@ -52,7 +52,7 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <NavBar profile={profile} view={view} setView={setView} />
-      <main style={{ flex: 1, padding: '0 0 80px' }}>
+      <main style={{ flex: 1, paddingBottom: 80 }}>
         {view === 'teacher' && profile.role !== 'student' && <TeacherView profile={profile} />}
         {view === 'student' && <StudentView profile={profile} />}
         {view === 'portfolio' && <PortfolioView profile={profile} />}
@@ -63,12 +63,29 @@ export default function App() {
 
 function NavBar({ profile, view, setView }: { profile: Profile; view: View; setView: (v: View) => void }) {
   const isTeacher = profile.role !== 'student'
+
   return (
-    <nav style={{ background: '#150836', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+    <nav style={{ background: '#150836', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '10px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
+
+      {/* Left: PrimeLuck logo + Dice Arts school */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 24 }}>🎨</span>
-        <span style={{ fontFamily: 'Fredoka One', fontSize: 18, color: '#FF6B35' }}>PCOS</span>
+        <img
+          src="/primeluck-logo.jpg"
+          alt="PrimeLuck Arts"
+          style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,107,53,0.55)', boxShadow: '0 0 10px rgba(255,107,53,0.25)' }}
+        />
+        <div>
+          <div style={{ fontFamily: "'Fredoka One', sans-serif", fontSize: 14, color: '#FF6B35', lineHeight: 1.1 }}>
+            PrimeLuck Creative OS
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
+            <img src="/dice-arts-logo.png" alt="Dice Arts" style={{ width: 14, height: 14, borderRadius: 3, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.2)' }} />
+            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 11 }}>Dice Arts Academy</span>
+          </div>
+        </div>
       </div>
+
+      {/* Centre: nav buttons */}
       <div style={{ display: 'flex', gap: 6 }}>
         {isTeacher && (
           <NavBtn active={view === 'teacher'} onClick={() => setView('teacher')} color="#FF9F1C">
@@ -82,12 +99,17 @@ function NavBar({ profile, view, setView }: { profile: Profile; view: View; setV
           🖼️ Portfolio
         </NavBtn>
       </div>
-      <button
-        onClick={() => supabase.auth.signOut()}
-        style={{ background: 'rgba(255,255,255,0.08)', border: 'none', color: '#aaa', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: 13 }}
-      >
-        Sign out
-      </button>
+
+      {/* Right: user + sign out */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{profile.name}</span>
+        <button
+          onClick={() => supabase.auth.signOut()}
+          style={{ background: 'rgba(255,255,255,0.07)', border: 'none', color: '#aaa', borderRadius: 8, padding: '5px 11px', cursor: 'pointer', fontSize: 12 }}
+        >
+          Sign out
+        </button>
+      </div>
     </nav>
   )
 }
@@ -118,7 +140,7 @@ function Spinner() {
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', flexDirection: 'column', gap: 16 }}>
       <div style={{ width: 48, height: 48, border: '4px solid rgba(255,107,53,0.3)', borderTop: '4px solid #FF6B35', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      <p style={{ color: '#aaa', fontFamily: 'Fredoka One' }}>Loading...</p>
+      <p style={{ color: '#aaa', fontFamily: "'Fredoka One', sans-serif" }}>Loading...</p>
     </div>
   )
 }
