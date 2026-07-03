@@ -7,11 +7,14 @@ import PortfolioView from './views/PortfolioView'
 import ClassDashboard from './views/ClassDashboard'
 import LessonLibrary from './views/LessonLibrary'
 import AdminPanel from './views/AdminPanel'
+import {
+  ClassIcon, LessonsIcon, CreateIcon, MissionIcon,
+  PortfolioIcon, AdminIcon,
+} from './components/ArtIcons'
 
 export interface Profile {
   id: string; school_id: string; role: string; name: string; age_band: string | null
 }
-
 type View = 'class' | 'lessons' | 'teacher' | 'student' | 'portfolio' | 'admin'
 
 export default function App() {
@@ -44,17 +47,26 @@ export default function App() {
   const isTeacher = profile.role !== 'student'
   const isAdmin = ['school_admin', 'platform_admin', 'teacher'].includes(profile.role)
 
-  const navItems: { key: View; emoji: string; label: string; color: string; show: boolean }[] = [
-    { key: 'class',     emoji: '🏫', label: 'Class',    color: '#4ade80',  show: isTeacher },
-    { key: 'lessons',   emoji: '📚', label: 'Lessons',  color: '#FF6B35',  show: true },
-    { key: 'teacher',   emoji: '✏️',  label: 'Create',   color: '#FF9F1C',  show: isTeacher },
-    { key: 'student',   emoji: '🎯', label: 'Mission',  color: '#1ECBE1',  show: true },
-    { key: 'portfolio', emoji: '🖼️',  label: 'Portfolio',color: '#a78bfa',  show: true },
-    { key: 'admin',     emoji: '⚙️',  label: 'Admin',    color: '#8B5CF6',  show: isAdmin },
+  const navItems: { key: View; Icon: React.FC<{ size?: number; color?: string }>; label: string; color: string; show: boolean }[] = [
+    { key: 'class',     Icon: ClassIcon,     label: 'Class',     color: '#4ade80', show: isTeacher },
+    { key: 'lessons',   Icon: LessonsIcon,   label: 'Lessons',   color: '#FF6B35', show: true },
+    { key: 'teacher',   Icon: CreateIcon,    label: 'Create',    color: '#FF9F1C', show: isTeacher },
+    { key: 'student',   Icon: MissionIcon,   label: 'Mission',   color: '#1ECBE1', show: true },
+    { key: 'portfolio', Icon: PortfolioIcon, label: 'Portfolio', color: '#a78bfa', show: true },
+    { key: 'admin',     Icon: AdminIcon,     label: 'Admin',     color: '#8B5CF6', show: isAdmin },
   ].filter(i => i.show)
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(160deg,#1E0B4E,#0D1020)' }}>
+      <style>{`
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Inter', sans-serif; }
+        select, input, textarea { color-scheme: dark; }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+        @keyframes spin { to{transform:rotate(360deg)} }
+        @keyframes pop { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+      `}</style>
+
       <NavBar profile={profile} view={view} setView={setView} navItems={navItems} />
       <main style={{ flex: 1, paddingBottom: 80 }}>
         {view === 'class'     && isTeacher  && <ClassDashboard profile={profile} />}
@@ -68,35 +80,67 @@ export default function App() {
   )
 }
 
-function NavBar({ profile, view, setView, navItems }: {
-  profile: Profile; view: View; setView: (v: View) => void
-  navItems: { key: View; emoji: string; label: string; color: string }[]
+function NavBtn({ icon: Icon, label, active, color, onClick }: {
+  icon: React.FC<{ size?: number; color?: string }>;
+  label: string; active: boolean; color: string; onClick: () => void
 }) {
   return (
-    <nav style={{ background: '#150836', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, flexWrap: 'wrap', gap: 8 }}>
+    <button onClick={onClick} style={{
+      background: 'none', border: 'none', cursor: 'pointer',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+      padding: '6px 10px', borderRadius: 12,
+      transition: 'all 0.2s',
+      position: 'relative',
+    }}>
+      {/* Active paint blob underline */}
+      {active && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
+          width: '80%', height: 3,
+          background: color,
+          borderRadius: 2,
+          clipPath: 'polygon(0 0, 100% 20%, 100% 100%, 0 80%)',
+        }} />
+      )}
+      <Icon size={20} color={active ? color : 'rgba(255,255,255,0.35)'} />
+      <span style={{ fontSize: 10, fontWeight: 700, color: active ? color : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        {label}
+      </span>
+    </button>
+  )
+}
+
+function NavBar({ profile, view, setView, navItems }: {
+  profile: Profile; view: View; setView: (v: View) => void
+  navItems: { key: View; Icon: React.FC<{ size?: number; color?: string }>; label: string; color: string }[]
+}) {
+  return (
+    <nav style={{ background: 'rgba(13,8,32,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
+      {/* Brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <img src="/primeluck-logo.jpg" alt="PrimeLuck" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,107,53,0.5)' }} />
         <div>
           <div style={{ fontFamily: "'Fredoka One',sans-serif", fontSize: 13, color: '#FF6B35', lineHeight: 1.1 }}>PrimeLuck Creative OS</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2 }}>
             <img src="/dice-arts-logo.png" alt="Dice Arts" style={{ width: 13, height: 13, borderRadius: 3, objectFit: 'cover' }} />
-            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>Dice Arts Academy</span>
+            <span style={{ color: 'rgba(255,255,255,0.28)', fontSize: 11 }}>Dice Arts Academy</span>
           </div>
         </div>
       </div>
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-        {navItems.map(({ key, emoji, label, color }) => (
-          <button key={key} onClick={() => setView(key)}
-            style={{ background: view === key ? color : 'rgba(255,255,255,0.06)', border: 'none', borderRadius: 20, padding: '6px 12px', color: view === key ? (key === 'class' ? '#0f172a' : '#fff') : '#aaa', cursor: 'pointer', fontSize: 12, fontWeight: 600, transition: 'all 0.2s' }}>
-            {emoji} {label}
-          </button>
+
+      {/* Art icon nav */}
+      <div style={{ display: 'flex', gap: 2 }}>
+        {navItems.map(({ key, Icon, label, color }) => (
+          <NavBtn key={key} icon={Icon} label={label} active={view === key} color={color} onClick={() => setView(key)} />
         ))}
       </div>
+
+      {/* User + signout */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12 }}>{profile.name}</span>
+        <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: 12 }}>{profile.name}</span>
         <button onClick={() => supabase.auth.signOut()}
-          style={{ background: 'rgba(255,255,255,0.06)', border: 'none', color: '#aaa', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: 12 }}>
-          Sign out
+          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+          Leave
         </button>
       </div>
     </nav>
@@ -105,10 +149,13 @@ function NavBar({ profile, view, setView, navItems }: {
 
 function Spinner() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', flexDirection: 'column', gap: 16 }}>
-      <div style={{ width: 48, height: 48, border: '4px solid rgba(255,107,53,0.3)', borderTop: '4px solid #FF6B35', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-      <p style={{ color: '#aaa', fontFamily: "'Fredoka One',sans-serif" }}>Loading...</p>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', flexDirection: 'column', gap: 20, background: 'linear-gradient(160deg,#1E0B4E,#0D1020)' }}>
+      {/* Spinning paintbrush instead of generic spinner */}
+      <svg width="48" height="48" viewBox="0 0 48 48" style={{ animation: 'spin 1.2s ease-in-out infinite' }}>
+        <path d="M10 38 Q14 34 20 28 L36 12 Q39 9 41 11 Q43 13 40 16 L24 32 Q18 38 14 42Z" fill="#FF6B35" opacity="0.9" />
+        <circle cx="11" cy="39" r="4" fill="#FF6B35" opacity="0.5" />
+      </svg>
+      <p style={{ color: 'rgba(255,255,255,0.4)', fontFamily: "'Fredoka One',sans-serif", fontSize: 15 }}>Loading your studio...</p>
     </div>
   )
 }
