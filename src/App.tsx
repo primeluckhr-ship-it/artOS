@@ -8,6 +8,7 @@ import ClassDashboard from './views/ClassDashboard'
 import LessonLibrary from './views/LessonLibrary'
 import AdminPanel from './views/AdminPanel'
 import ClansView from './views/ClansView'
+import { ArtBackground } from './components/ArtBackground'
 import {
   ClassIcon, LessonsIcon, CreateIcon, MissionIcon,
   PortfolioIcon, AdminIcon,
@@ -80,6 +81,7 @@ export default function App() {
         @keyframes pop { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
       `}</style>
 
+      <ArtBackground />
       <NavBar profile={profile} view={view} setView={setView} navItems={navItems} />
       <main style={{ flex: 1, paddingBottom: 80 }}>
         {view === 'class'     && isTeacher  && <ClassDashboard profile={profile} />}
