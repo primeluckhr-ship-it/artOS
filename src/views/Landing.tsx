@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+const SEED_URL = 'https://hpyznfxnltreviijyhct.supabase.co/functions/v1/seed-demo-users'
+
 export default function Landing({ onSignIn }: { onSignIn: () => void }) {
   const [email, setEmail] = useState('teacher@primeluckdemo.com')
   const [password, setPassword] = useState('demo1234')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [seeding, setSeeding] = useState(false)
+  const [seedMsg, setSeedMsg] = useState<string | null>(null)
 
   async function signIn(e?: React.FormEvent) {
     e?.preventDefault()
@@ -13,20 +17,32 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
     setError(null)
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password })
-      if (authError) {
-        setError(authError.message || JSON.stringify(authError))
-        return
-      }
-      if (!data.user) {
-        setError('Sign in succeeded but no user returned. Please try again.')
-        return
-      }
+      if (authError) { setError(authError.message || 'Sign-in failed'); return }
+      if (!data.user) { setError('No user returned — try Setup Demo Accounts first'); return }
       onSignIn()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unexpected error — check console')
-      console.error('Sign in error:', err)
+      setError(err instanceof Error ? err.message : 'Unexpected error')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function setupDemoAccounts() {
+    setSeeding(true)
+    setSeedMsg(null)
+    setError(null)
+    try {
+      const res = await fetch(SEED_URL, { method: 'POST' })
+      const data = await res.json()
+      if (data.success) {
+        setSeedMsg('✅ Demo accounts ready! You can now sign in.')
+      } else {
+        setSeedMsg('⚠️ ' + (data.error || JSON.stringify(data)))
+      }
+    } catch (err: unknown) {
+      setSeedMsg('❌ ' + (err instanceof Error ? err.message : 'Setup failed'))
+    } finally {
+      setSeeding(false)
     }
   }
 
@@ -58,12 +74,27 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
         <h1 style={{ fontFamily: "'Fredoka One',sans-serif", fontSize: 36, lineHeight: 1.1, background: 'linear-gradient(90deg,#FF6B35,#FFE135)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: 6, textAlign: 'center' }}>
           PrimeLuck<br />Creative OS
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 28, textAlign: 'center', lineHeight: 1.6 }}>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, marginBottom: 24, textAlign: 'center', lineHeight: 1.6 }}>
           Where every lesson becomes a mission.<br />Every mission becomes a story.
         </p>
 
-        {/* Quick-fill buttons */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+        {/* Setup button — first-time use */}
+        <button
+          onClick={setupDemoAccounts}
+          disabled={seeding}
+          style={{ width: '100%', background: seeding ? 'rgba(255,225,53,0.15)' : 'rgba(255,225,53,0.12)', border: '1px solid rgba(255,225,53,0.35)', borderRadius: 13, padding: '12px 16px', color: '#FFE135', fontFamily: "'Fredoka One',sans-serif", fontSize: 15, cursor: seeding ? 'wait' : 'pointer', marginBottom: 10, transition: 'all 0.2s' }}
+        >
+          {seeding ? '⏳ Setting up demo accounts...' : '⚡ Setup Demo Accounts'}
+        </button>
+
+        {seedMsg && (
+          <div style={{ background: seedMsg.startsWith('✅') ? 'rgba(30,203,100,0.12)' : 'rgba(255,80,80,0.12)', border: `1px solid ${seedMsg.startsWith('✅') ? 'rgba(30,203,100,0.3)' : 'rgba(255,80,80,0.3)'}`, borderRadius: 10, padding: '11px 14px', color: seedMsg.startsWith('✅') ? '#4ade80' : '#ff8080', fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
+            {seedMsg}
+          </div>
+        )}
+
+        {/* Quick-fill */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
           {(['teacher', 'student'] as const).map(role => (
             <button key={role} onClick={() => prefill(role)} style={{ flex: 1, background: email.includes(role) ? (role === 'teacher' ? 'rgba(255,159,28,0.2)' : 'rgba(30,203,225,0.2)') : 'rgba(255,255,255,0.05)', border: `1px solid ${email.includes(role) ? (role === 'teacher' ? 'rgba(255,159,28,0.5)' : 'rgba(30,203,225,0.5)') : 'rgba(255,255,255,0.1)'}`, borderRadius: 12, padding: '10px 14px', cursor: 'pointer', color: role === 'teacher' ? '#FF9F1C' : '#1ECBE1', fontFamily: "'Fredoka One',sans-serif", fontSize: 15, transition: 'all 0.2s' }}>
               {role === 'teacher' ? '✏️ Teacher' : '🎯 Student'}
@@ -72,7 +103,7 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
         </div>
 
         {/* Sign-in form */}
-        <form onSubmit={signIn} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18, padding: 22, marginBottom: 16 }}>
+        <form onSubmit={signIn} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 18, padding: 22, marginBottom: 14 }}>
           <div style={{ marginBottom: 14 }}>
             <label style={{ display: 'block', color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 7 }}>Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} style={inp} required />
@@ -83,7 +114,7 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
           </div>
 
           {error && (
-            <div style={{ background: 'rgba(255,80,80,0.12)', border: '1px solid rgba(255,80,80,0.35)', borderRadius: 10, padding: '11px 14px', color: '#ff8080', fontSize: 13, marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ background: 'rgba(255,80,80,0.12)', border: '1px solid rgba(255,80,80,0.35)', borderRadius: 10, padding: '11px 14px', color: '#ff8080', fontSize: 13, marginBottom: 14, lineHeight: 1.5 }}>
               ⚠️ {error}
             </div>
           )}
@@ -94,16 +125,16 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
         </form>
 
         {/* Visible credentials */}
-        <div style={{ background: 'rgba(255,225,53,0.06)', border: '1px solid rgba(255,225,53,0.2)', borderRadius: 13, padding: '14px 18px', marginBottom: 18 }}>
+        <div style={{ background: 'rgba(255,225,53,0.06)', border: '1px solid rgba(255,225,53,0.2)', borderRadius: 13, padding: '14px 18px', marginBottom: 14 }}>
           <div style={{ color: '#FFE135', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>🔑 Demo Credentials</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { role: '✏️ Teacher', email: 'teacher@primeluckdemo.com' },
-              { role: '🎯 Student', email: 'student@primeluckdemo.com' },
-            ].map(({ role, email: e }) => (
-              <div key={e} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 12px' }}>
+              { role: '✏️ Teacher', em: 'teacher@primeluckdemo.com' },
+              { role: '🎯 Student', em: 'student@primeluckdemo.com' },
+            ].map(({ role, em }) => (
+              <div key={em} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 12px' }}>
                 <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{role}</div>
-                <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, marginBottom: 2 }}>{e}</div>
+                <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, marginBottom: 2 }}>{em}</div>
                 <div style={{ color: '#FFE135', fontSize: 11, fontWeight: 700 }}>demo1234</div>
               </div>
             ))}
@@ -112,7 +143,7 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
 
         {/* Dice Arts badge */}
         <div style={{ padding: '12px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/dice-arts-logo.png" alt="Dice Arts" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', border: '1px solid rgba(255,255,255,0.15)' }} />
+          <img src="/dice-arts-logo.png" alt="Dice Arts" style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: "'Fredoka One',sans-serif", fontSize: 13, color: '#fff' }}>Dice Arts Academy</div>
             <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11 }}>A PrimeLuck Network School · Inspiring Creativity</div>
