@@ -7,6 +7,7 @@ import PortfolioView from './views/PortfolioView'
 import ClassDashboard from './views/ClassDashboard'
 import LessonLibrary from './views/LessonLibrary'
 import AdminPanel from './views/AdminPanel'
+import ClansView from './views/ClansView'
 import {
   ClassIcon, LessonsIcon, CreateIcon, MissionIcon,
   PortfolioIcon, AdminIcon,
@@ -15,7 +16,18 @@ import {
 export interface Profile {
   id: string; school_id: string; role: string; name: string; age_band: string | null
 }
-type View = 'class' | 'lessons' | 'teacher' | 'student' | 'portfolio' | 'admin'
+type View = 'class' | 'lessons' | 'teacher' | 'student' | 'portfolio' | 'admin' | 'clans'
+
+function ClansIcon({ size = 22, color = 'currentColor' }: { size?: number; color?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeLinecap="round">
+      {/* Two shields interlocked — clan/alliance mark */}
+      <path d="M9 3 Q5 3 4 7 L4 13 Q4 18 9 20 Q11 21 12 20" stroke={color} strokeWidth="2" fill="none" />
+      <path d="M15 3 Q19 3 20 7 L20 13 Q20 18 15 20 Q13 21 12 20" stroke={color} strokeWidth="2" fill="none" />
+      <circle cx="12" cy="12" r="2.5" fill={color} opacity="0.8" />
+    </svg>
+  )
+}
 
 export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -52,6 +64,7 @@ export default function App() {
     { key: 'lessons',   Icon: LessonsIcon,   label: 'Lessons',   color: '#FF6B35', show: true },
     { key: 'teacher',   Icon: CreateIcon,    label: 'Create',    color: '#FF9F1C', show: isTeacher },
     { key: 'student',   Icon: MissionIcon,   label: 'Mission',   color: '#1ECBE1', show: true },
+    { key: 'clans',     Icon: ClansIcon,     label: 'Clans',     color: '#f472b6', show: true },
     { key: 'portfolio', Icon: PortfolioIcon, label: 'Portfolio', color: '#a78bfa', show: true },
     { key: 'admin',     Icon: AdminIcon,     label: 'Admin',     color: '#8B5CF6', show: isAdmin },
   ].filter(i => i.show)
@@ -73,6 +86,7 @@ export default function App() {
         {view === 'lessons'                 && <LessonLibrary profile={profile} />}
         {view === 'teacher'   && isTeacher  && <TeacherView profile={profile} />}
         {view === 'student'                 && <StudentView profile={profile} />}
+        {view === 'clans'                   && <ClansView profile={profile} />}
         {view === 'portfolio'               && <PortfolioView profile={profile} />}
         {view === 'admin'     && isAdmin    && <AdminPanel profile={profile} />}
       </main>
@@ -88,17 +102,12 @@ function NavBtn({ icon: Icon, label, active, color, onClick }: {
     <button onClick={onClick} style={{
       background: 'none', border: 'none', cursor: 'pointer',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-      padding: '6px 10px', borderRadius: 12,
-      transition: 'all 0.2s',
-      position: 'relative',
+      padding: '6px 10px', borderRadius: 12, transition: 'all 0.2s', position: 'relative',
     }}>
-      {/* Active paint blob underline */}
       {active && (
         <div style={{
           position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-          width: '80%', height: 3,
-          background: color,
-          borderRadius: 2,
+          width: '80%', height: 3, background: color, borderRadius: 2,
           clipPath: 'polygon(0 0, 100% 20%, 100% 100%, 0 80%)',
         }} />
       )}
@@ -116,7 +125,6 @@ function NavBar({ profile, view, setView, navItems }: {
 }) {
   return (
     <nav style={{ background: 'rgba(13,8,32,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
-      {/* Brand */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <img src="/primeluck-logo.jpg" alt="PrimeLuck" style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,107,53,0.5)' }} />
         <div>
@@ -127,19 +135,14 @@ function NavBar({ profile, view, setView, navItems }: {
           </div>
         </div>
       </div>
-
-      {/* Art icon nav */}
       <div style={{ display: 'flex', gap: 2 }}>
         {navItems.map(({ key, Icon, label, color }) => (
           <NavBtn key={key} icon={Icon} label={label} active={view === key} color={color} onClick={() => setView(key)} />
         ))}
       </div>
-
-      {/* User + signout */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: 12 }}>{profile.name}</span>
-        <button onClick={() => supabase.auth.signOut()}
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
+        <button onClick={() => supabase.auth.signOut()} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 12 }}>
           Leave
         </button>
       </div>
@@ -150,7 +153,6 @@ function NavBar({ profile, view, setView, navItems }: {
 function Spinner() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', flexDirection: 'column', gap: 20, background: 'linear-gradient(160deg,#1E0B4E,#0D1020)' }}>
-      {/* Spinning paintbrush instead of generic spinner */}
       <svg width="48" height="48" viewBox="0 0 48 48" style={{ animation: 'spin 1.2s ease-in-out infinite' }}>
         <path d="M10 38 Q14 34 20 28 L36 12 Q39 9 41 11 Q43 13 40 16 L24 32 Q18 38 14 42Z" fill="#FF6B35" opacity="0.9" />
         <circle cx="11" cy="39" r="4" fill="#FF6B35" opacity="0.5" />
