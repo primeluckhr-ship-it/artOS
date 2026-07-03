@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase'
 const SEED_URL = 'https://hpyznfxnltreviijyhct.supabase.co/functions/v1/seed-demo-users'
 
 export default function Landing({ onSignIn }: { onSignIn: () => void }) {
-  const [email, setEmail] = useState('teacher@primeluckdemo.com')
-  const [password, setPassword] = useState('demo1234')
+  const [email, setEmail] = useState('teacher@primeluckart.com')
+  const [password, setPassword] = useState('PrimeluckArtOs')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [seeding, setSeeding] = useState(false)
@@ -47,8 +47,8 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
   }
 
   function prefill(role: 'teacher' | 'student') {
-    setEmail(role === 'teacher' ? 'teacher@primeluckdemo.com' : 'student@primeluckdemo.com')
-    setPassword('demo1234')
+    setEmail(role === 'teacher' ? 'teacher@primeluckart.com' : 'student@primeluckart.com')
+    setPassword('PrimeluckArtOs')
     setError(null)
   }
 
@@ -129,13 +129,13 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
           <div style={{ color: '#FFE135', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>🔑 Demo Credentials</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { role: '✏️ Teacher', em: 'teacher@primeluckdemo.com' },
-              { role: '🎯 Student', em: 'student@primeluckdemo.com' },
+              { role: '✏️ Teacher', em: 'teacher@primeluckart.com' },
+              { role: '🎯 Student', em: 'student@primeluckart.com' },
             ].map(({ role, em }) => (
               <div key={em} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: '10px 12px' }}>
                 <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>{role}</div>
                 <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11, marginBottom: 2 }}>{em}</div>
-                <div style={{ color: '#FFE135', fontSize: 11, fontWeight: 700 }}>demo1234</div>
+                <div style={{ color: '#FFE135', fontSize: 11, fontWeight: 700 }}>PrimeluckArtOs</div>
               </div>
             ))}
           </div>
