@@ -9,6 +9,7 @@ import LessonLibrary from './views/LessonLibrary'
 import AdminPanel from './views/AdminPanel'
 import ClansView from './views/ClansView'
 import { ArtBackground } from './components/ArtBackground'
+import PublicPortfolio from './views/PublicPortfolio'
 import {
   ClassIcon, LessonsIcon, CreateIcon, MissionIcon,
   PortfolioIcon, AdminIcon,
