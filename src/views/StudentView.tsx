@@ -57,10 +57,10 @@ export default function StudentView({ profile }: { profile: Profile }) {
 
   async function loadStudent() {
     const [{ data: prog }, { data: prof }] = await Promise.all([
-      supabase.from('student_progress').select('xp').eq('student_id', profile.id).maybeSingle(),
+      supabase.from('xp_ledger').select('xp_amount').eq('student_id', profile.id),
       supabase.from('profiles').select('hint_credits').eq('id', profile.id).single(),
     ])
-    setTotalXp(prog?.xp || 0)
+    setTotalXp((prog || []).reduce((s: number, r: any) => s + r.xp_amount, 0))
     setCredits(prof?.hint_credits ?? 5)
   }
 
