@@ -80,11 +80,12 @@ export default function App() {
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
         @keyframes spin { to{transform:rotate(360deg)} }
         @keyframes pop { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.08)} 100%{transform:scale(1);opacity:1} }
+        @keyframes spin { to{transform:rotate(360deg)} }
       `}</style>
 
       <ArtBackground />
       <NavBar profile={profile} view={view} setView={setView} navItems={navItems} />
-      <main style={{ flex: 1, paddingBottom: 80 }}>
+      <main style={{ flex: 1, paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
         {view === 'class'     && isTeacher  && <ClassDashboard profile={profile} />}
         {view === 'lessons'                 && <LessonLibrary profile={profile} />}
         {view === 'teacher'   && isTeacher  && <TeacherView profile={profile} />}
@@ -97,23 +98,32 @@ export default function App() {
   )
 }
 
-function NavBtn({ icon: Icon, label, active, color, onClick }: {
+function NavBtn({ icon: Icon, label, active, color, onClick, mobile }: {
   icon: React.FC<{ size?: number; color?: string }>;
-  label: string; active: boolean; color: string; onClick: () => void
+  label: string; active: boolean; color: string; onClick: () => void; mobile?: boolean
 }) {
+  if (mobile) {
+    return (
+      <button onClick={onClick} style={{
+        flex: 1, background: 'none', border: 'none', cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+        padding: '10px 4px 8px', position: 'relative', minWidth: 0,
+      }}>
+        {active && <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '40%', height: 3, background: color, borderRadius: '0 0 3px 3px', clipPath: 'polygon(5% 0, 95% 0, 100% 100%, 0 100%)' }} />}
+        <Icon size={22} color={active ? color : 'rgba(255,255,255,0.3)'} />
+        <span style={{ fontSize: 9, fontWeight: 700, color: active ? color : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.5, whiteSpace: 'nowrap', overflow: 'hidden', maxWidth: '100%', textOverflow: 'ellipsis' }}>
+          {label}
+        </span>
+      </button>
+    )
+  }
   return (
     <button onClick={onClick} style={{
       background: 'none', border: 'none', cursor: 'pointer',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
       padding: '6px 10px', borderRadius: 12, transition: 'all 0.2s', position: 'relative',
     }}>
-      {active && (
-        <div style={{
-          position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-          width: '80%', height: 3, background: color, borderRadius: 2,
-          clipPath: 'polygon(0 0, 100% 20%, 100% 100%, 0 80%)',
-        }} />
-      )}
+      {active && <div style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '80%', height: 3, background: color, borderRadius: 2, clipPath: 'polygon(0 0, 100% 20%, 100% 100%, 0 80%)' }} />}
       <Icon size={20} color={active ? color : 'rgba(255,255,255,0.35)'} />
       <span style={{ fontSize: 10, fontWeight: 700, color: active ? color : 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: 0.8 }}>
         {label}
@@ -126,6 +136,31 @@ function NavBar({ profile, view, setView, navItems }: {
   profile: Profile; view: View; setView: (v: View) => void
   navItems: { key: View; Icon: React.FC<{ size?: number; color?: string }>; label: string; color: string }[]
 }) {
+  const isMobile = window.innerWidth < 640
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile: minimal top bar */}
+        <nav style={{ background: 'rgba(13,8,32,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <img src="/primeluck-logo.jpg" alt="PrimeLuck" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,107,53,0.5)' }} />
+            <span style={{ fontFamily: "'Fredoka One',sans-serif", fontSize: 14, color: '#FF6B35' }}>PrimeLuck OS</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>{profile.name.split(' ')[0]}</span>
+            <button onClick={() => supabase.auth.signOut()} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 11 }}>Leave</button>
+          </div>
+        </nav>
+        {/* Mobile: fixed bottom tab bar */}
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,6,26,0.97)', borderTop: '1px solid rgba(255,255,255,0.1)', zIndex: 100, display: 'flex', paddingBottom: 'env(safe-area-inset-bottom,0px)', backdropFilter: 'blur(16px)' }}>
+          {navItems.slice(0, 5).map(({ key, Icon, label, color }) => (
+            <NavBtn key={key} icon={Icon} label={label} active={view === key} color={color} onClick={() => setView(key)} mobile />
+          ))}
+        </nav>
+      </>
+    )
+  }
+
   return (
     <nav style={{ background: 'rgba(13,8,32,0.95)', borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
