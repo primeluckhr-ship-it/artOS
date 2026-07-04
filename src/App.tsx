@@ -15,10 +15,12 @@ import {
   PortfolioIcon, AdminIcon,
 } from './components/ArtIcons'
 
+import OnboardingTour from './components/OnboardingTour'
+import ParentReport from './views/ParentReport'
 export interface Profile {
   id: string; school_id: string; role: string; name: string; age_band: string | null
 }
-type View = 'class' | 'lessons' | 'teacher' | 'student' | 'portfolio' | 'admin' | 'clans'
+type View = 'class' | 'lessons' | 'teacher' | 'student' | 'portfolio' | 'admin' | 'clans' | 'report'
 
 function ClansIcon({ size = 22, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
@@ -34,6 +36,7 @@ function ClansIcon({ size = 22, color = 'currentColor' }: { size?: number; color
 export default function App() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showTour, setShowTour] = useState(false)
   const [view, setView] = useState<View>('class')
 
   useEffect(() => {
@@ -49,8 +52,9 @@ export default function App() {
   async function loadProfile() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
-    const { data } = await supabase.from('profiles').select('id, school_id, role, name, age_band').eq('auth_user_id', user.id).single()
+    const { data } = await supabase.from('profiles').select('id, school_id, role, name, age_band, onboarding_done').eq('auth_user_id', user.id).single()
     setProfile(data)
+    if (data && !data.onboarding_done) setShowTour(true)
     setView(data?.role === 'student' ? 'student' : 'class')
     setLoading(false)
   }
@@ -68,6 +72,7 @@ export default function App() {
     { key: 'student',   Icon: MissionIcon,   label: 'Mission',   color: '#1ECBE1', show: true },
     { key: 'clans',     Icon: ClansIcon,     label: 'Clans',     color: '#f472b6', show: true },
     { key: 'portfolio', Icon: PortfolioIcon, label: 'Portfolio', color: '#a78bfa', show: true },
+    { key: 'report' as View,    Icon: PortfolioIcon, label: 'Report',  color: '#f9a8d4', show: true },
     { key: 'admin',     Icon: AdminIcon,     label: 'Admin',     color: '#8B5CF6', show: isAdmin },
   ].filter(i => i.show)
 
@@ -85,6 +90,7 @@ export default function App() {
 
       <ArtBackground />
       <NavBar profile={profile} view={view} setView={setView} navItems={navItems} />
+      {showTour && profile && <OnboardingTour profile={profile} onDone={() => setShowTour(false)} />}
       <main style={{ flex: 1, paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
         {view === 'class'     && isTeacher  && <ClassDashboard profile={profile} />}
         {view === 'lessons'                 && <LessonLibrary profile={profile} />}
@@ -93,6 +99,7 @@ export default function App() {
         {view === 'clans'                   && <ClansView profile={profile} />}
         {view === 'portfolio'               && <PortfolioView profile={profile} />}
         {view === 'admin'     && isAdmin    && <AdminPanel profile={profile} />}
+        {view === 'report'   && profile   && <ParentReport profile={profile} />}
       </main>
     </div>
   )
