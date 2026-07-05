@@ -35,5 +35,11 @@ export function useAuth() {
     await firebaseSignOut(auth);
   }, []);
 
-  return { user, loading, signIn, signUp, signOut };
+  const updateDisplayName = useCallback(async (displayName: string) => {
+    if (!auth.currentUser) throw new Error("Not authenticated");
+    await updateProfile(auth.currentUser, { displayName });
+    useAuthStore.setState({ user: { ...auth.currentUser } });
+  }, []);
+
+  return { user, loading, signIn, signUp, signOut, updateDisplayName };
 }
