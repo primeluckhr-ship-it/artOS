@@ -48,6 +48,7 @@ export default function StudentView({ profile }: { profile: Profile }) {
   const [completing, setCompleting] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [xpGained, setXpGained]   = useState(0)
+  const [suggestedLesson, setSuggestedLesson] = useState<any>(null)
   const [totalXp, setTotalXp]     = useState(0)
   const [credits, setCredits]     = useState(5)
   const [hints, setHints]         = useState<MissionHint[]>([])
@@ -75,6 +76,15 @@ export default function StudentView({ profile }: { profile: Profile }) {
       })
       const data = await r.json()
       setMission({ ...data, domain, difficulty })
+      // Curriculum link: find nearest lesson in this domain + difficulty
+      const { data: lessons } = await (await import('../lib/supabase')).supabase
+        .from('lesson_library')
+        .select('id, title, domain, level, level_number, concept, image_url')
+        .eq('domain', domain)
+        .eq('level', difficulty)
+        .limit(1)
+      if (lessons && lessons.length > 0) setSuggestedLesson(lessons[0])
+      else setSuggestedLesson(null)
       const { data: hData } = await supabase.from('mission_hints').select('*').eq('domain', domain).limit(3)
       setHints(hData || [])
     } catch(e) { console.error(e) }
@@ -230,7 +240,7 @@ export default function StudentView({ profile }: { profile: Profile }) {
                 {mission.mission_title}
               </div>
             </div>
-            <button onClick={() => { setMission(null); setHints([]); setRevealed([]) }} style={{ position:'absolute', top:12, right:12, background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.6)', borderRadius:8, width:32, height:32, cursor:'pointer', fontSize:15, backdropFilter:'blur(4px)' }}>×</button>
+            <button onClick={() => { setMission(null); setHints([]); setRevealed([]); setSuggestedLesson(null) }} style={{ position:'absolute', top:12, right:12, background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.6)', borderRadius:8, width:32, height:32, cursor:'pointer', fontSize:15, backdropFilter:'blur(4px)' }}>×</button>
           </div>
 
           <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:'0 0 20px 20px', padding:'22px 22px 22px', borderTop:'none' }}>
@@ -327,6 +337,25 @@ export default function StudentView({ profile }: { profile: Profile }) {
         </div>
       )}
 
+      {/* Curriculum link — suggested lesson for this domain + difficulty */}
+      {suggestedLesson && mission && !completed && (
+        <div style={{ marginTop:16, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, overflow:'hidden', animation:'fadeUp 0.5s 0.3s ease both', display:'flex', gap:0 }}>
+          {suggestedLesson.image_url && (
+            <div style={{ width:80, flexShrink:0, backgroundImage:`url(${suggestedLesson.image_url})`, backgroundSize:'cover', backgroundPosition:'center', position:'relative' }}>
+              <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.4)' }}/>
+            </div>
+          )}
+          <div style={{ padding:'14px 16px', flex:1 }}>
+            <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:1.3, color:'rgba(255,255,255,0.3)', marginBottom:5 }}>
+              📚 Related lesson
+            </div>
+            <div style={{ fontSize:13, fontWeight:700, color:'#fff', marginBottom:3 }}>{suggestedLesson.title}</div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', lineHeight:1.5 }}>{suggestedLesson.concept}</div>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', padding:'0 14px', color:'rgba(255,255,255,0.2)', fontSize:18 }}>›</div>
+        </div>
+      )}
+
       {/* Completion */}
       {completed && (
         <div style={{ textAlign:'center', padding:'48px 20px', animation:'pop 0.4s ease' }}>
@@ -344,7 +373,7 @@ export default function StudentView({ profile }: { profile: Profile }) {
             </div>
           )}
           <p style={{ color:'rgba(255,255,255,0.4)', fontSize:14, marginBottom:28 }}>Share it with your clan — then take on the next one.</p>
-          <button onClick={() => { setCompleted(false); setMission(null); setHints([]); setRevealed([]) }} style={{
+          <button onClick={() => { setCompleted(false); setMission(null); setHints([]); setRevealed([]); setSuggestedLesson(null) }} style={{
             background:`linear-gradient(135deg,${dom.color},${dom.color}aa)`, border:'none', borderRadius:14,
             color:'#fff', fontSize:17, fontFamily:"'Fredoka One',sans-serif", padding:'14px 36px', cursor:'pointer',
             boxShadow:`0 8px 32px ${dom.color}40`,
