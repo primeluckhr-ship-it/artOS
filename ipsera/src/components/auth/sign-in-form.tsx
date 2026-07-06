@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { friendlyAuthError } from "@/lib/firebase-error";
+import { friendlyAuthError } from "@/lib/auth-error";
 import { signInSchema, type SignInFormValues } from "@/lib/validators/auth.schema";
 
 export function SignInForm() {

@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback } from "react";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  updateProfile,
-} from "firebase/auth";
 
-import { auth } from "@/infrastructure/firebase/client";
+import { supabase } from "@/infrastructure/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function useAuth() {
@@ -16,29 +10,33 @@ export function useAuth() {
   const loading = useAuthStore((s) => s.loading);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
   }, []);
 
   const signUp = useCallback(
     async (email: string, password: string, displayName: string) => {
-      const credential = await createUserWithEmailAndPassword(
-        auth,
+      const { error } = await supabase.auth.signUp({
         email,
-        password
-      );
-      await updateProfile(credential.user, { displayName });
+        password,
+        options: { data: { display_name: displayName } },
+      });
+      if (error) throw error;
     },
     []
   );
 
   const signOut = useCallback(async () => {
-    await firebaseSignOut(auth);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   }, []);
 
   const updateDisplayName = useCallback(async (displayName: string) => {
-    if (!auth.currentUser) throw new Error("Not authenticated");
-    await updateProfile(auth.currentUser, { displayName });
-    useAuthStore.setState({ user: { ...auth.currentUser } });
+    const { data, error } = await supabase.auth.updateUser({
+      data: { display_name: displayName },
+    });
+    if (error) throw error;
+    useAuthStore.setState({ user: data.user });
   }, []);
 
   return { user, loading, signIn, signUp, signOut, updateDisplayName };

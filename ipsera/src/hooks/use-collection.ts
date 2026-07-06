@@ -4,10 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { BaseEntity } from "@/domain/types/common";
 import { useAuthStore } from "@/stores/auth-store";
-import type { createUserScopedRepository } from "@/infrastructure/firebase/user-scoped-repository";
+import type { createUserScopedRepository } from "@/infrastructure/supabase/user-scoped-repository";
 
 /**
- * Subscribes to a user-scoped Firestore collection for as long as someone is
+ * Subscribes to a user-scoped Supabase table for as long as someone is
  * signed in. Shared by every feature hook (tasks/projects/goals/reflections)
  * since they all follow the same "list + create + update + remove" shape.
  */
@@ -27,7 +27,7 @@ export function useCollection<TEntity extends BaseEntity>(
     }
     setLoading(true);
     const unsubscribe = repository.subscribe(
-      user.uid,
+      user.id,
       (items) => {
         setData(items);
         setLoading(false);
@@ -43,7 +43,7 @@ export function useCollection<TEntity extends BaseEntity>(
   const create = useCallback(
     (input: Record<string, unknown>) => {
       if (!user) throw new Error("Not authenticated");
-      return repository.create(user.uid, input);
+      return repository.create(user.id, input);
     },
     [user, repository]
   );
@@ -51,7 +51,7 @@ export function useCollection<TEntity extends BaseEntity>(
   const update = useCallback(
     (id: string, input: Record<string, unknown>) => {
       if (!user) throw new Error("Not authenticated");
-      return repository.update(user.uid, id, input);
+      return repository.update(user.id, id, input);
     },
     [user, repository]
   );
@@ -59,7 +59,7 @@ export function useCollection<TEntity extends BaseEntity>(
   const remove = useCallback(
     (id: string) => {
       if (!user) throw new Error("Not authenticated");
-      return repository.remove(user.uid, id);
+      return repository.remove(user.id, id);
     },
     [user, repository]
   );

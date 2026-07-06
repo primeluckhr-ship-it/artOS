@@ -24,6 +24,7 @@ function initials(name: string | null | undefined, email: string | null | undefi
 export function AppTopbar() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const displayName = user?.user_metadata?.display_name as string | undefined;
 
   const handleSignOut = async () => {
     await signOut();
@@ -33,7 +34,7 @@ export function AppTopbar() {
   return (
     <header className="bg-background/95 sticky top-0 z-30 flex h-14 items-center justify-between border-b px-4 backdrop-blur md:px-6">
       <p className="text-sm font-medium">
-        {user?.displayName ? `Welcome, ${user.displayName.split(" ")[0]}` : "Welcome"}
+        {displayName ? `Welcome, ${displayName.split(" ")[0]}` : "Welcome"}
       </p>
       <div className="flex items-center gap-1.5">
         <ThemeToggle />
@@ -42,7 +43,7 @@ export function AppTopbar() {
             <Button variant="ghost" size="icon" aria-label="Account menu">
               <Avatar className="size-7">
                 <AvatarFallback className="text-xs">
-                  {initials(user?.displayName, user?.email)}
+                  {initials(displayName, user?.email)}
                 </AvatarFallback>
               </Avatar>
             </Button>

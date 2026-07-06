@@ -2,7 +2,7 @@ import type { IpseraDimension } from "./dimension";
 
 export interface BaseEntity {
   id: string;
-  ownerId: string;
+  userId: string;
   createdAt: Date;
   updatedAt: Date;
 }

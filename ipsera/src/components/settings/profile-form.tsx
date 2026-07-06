@@ -26,7 +26,7 @@ export function ProfileForm() {
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: { displayName: user?.displayName ?? "" },
+    defaultValues: { displayName: user?.user_metadata?.display_name ?? "" },
   });
 
   const onSubmit = async (values: ProfileFormValues) => {

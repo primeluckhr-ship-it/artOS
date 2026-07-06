@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
 
-import { auth } from "@/infrastructure/firebase/client";
+import { supabase } from "@/infrastructure/supabase/client";
 import { useAuthStore } from "@/stores/auth-store";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -11,11 +10,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setLoading = useAuthStore((s) => s.setLoading);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
       setLoading(false);
     });
-    return unsubscribe;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, [setUser, setLoading]);
 
   return <>{children}</>;
