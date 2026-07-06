@@ -17,6 +17,7 @@ export function SignUpForm() {
   const router = useRouter();
   const { signUp } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   const {
     register,
@@ -29,12 +30,32 @@ export function SignUpForm() {
   const onSubmit = async (values: SignUpFormValues) => {
     setFormError(null);
     try {
-      await signUp(values.email, values.password, values.displayName);
-      router.push("/dashboard");
+      const { needsEmailConfirmation } = await signUp(
+        values.email,
+        values.password,
+        values.displayName
+      );
+      if (needsEmailConfirmation) {
+        setAwaitingConfirmation(true);
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error) {
       setFormError(friendlyAuthError(error));
     }
   };
+
+  if (awaitingConfirmation) {
+    return (
+      <div className="flex flex-col gap-2 text-center">
+        <p className="text-sm font-medium">Check your email</p>
+        <p className="text-muted-foreground text-sm">
+          We sent you a confirmation link. Click it to finish creating your
+          account, then sign in.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">

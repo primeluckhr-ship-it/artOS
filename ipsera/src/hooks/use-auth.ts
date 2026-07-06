@@ -16,12 +16,15 @@ export function useAuth() {
 
   const signUp = useCallback(
     async (email: string, password: string, displayName: string) => {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { data: { display_name: displayName } },
       });
       if (error) throw error;
+      // Email confirmation is on by default: signUp succeeds without error but
+      // returns no session until the user clicks the confirmation link.
+      return { needsEmailConfirmation: data.session === null };
     },
     []
   );
