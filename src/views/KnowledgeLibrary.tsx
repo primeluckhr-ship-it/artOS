@@ -93,7 +93,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: 1500,
+          max_tokens: 4000,
           messages: [{ role: 'user', content: prompt }],
         }),
       })
@@ -114,36 +114,145 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
     setGen(false)
   }
 
-  function buildPrompt(a: Article) {
-    const catLabel = CATS.find(c => c.key === a.category)?.label || a.category
-    return `You are an expert visual arts educator. Generate a comprehensive, engaging knowledge article about "${a.title}" for art students.
+  function buildPrompt(a: Article): string {
+    const isMovement  = a.category === 'movements'
+    const isArtist    = a.category === 'artists'
+    const isMaterial  = a.category === 'materials'
+    const isTechnique = a.category === 'drawing' || a.category === 'painting'
+    const isFundament = a.category === 'fundamentals'
+    const isMuseum    = a.category === 'museums'
 
-Category: ${catLabel}${a.subcategory ? ` > ${a.subcategory}` : ''}
-${a.era ? `Era/Period: ${a.era}` : ''}
-Tags: ${(a.tags || []).join(', ')}
+    const aud = `The audience is adult learners — art students, educators, working artists, and serious enthusiasts. Do NOT simplify or write at a children's level. Be intellectually rigorous: use precise art historical and technical terminology, engage with real critical debates, reference specific named artworks with dates and current locations, and treat the reader as capable of absorbing complex ideas. Avoid vague generalisations.`
 
-Respond ONLY with a JSON object (no markdown, no preamble) with this exact structure:
+    const base = `${a.title}${a.subcategory ? ` (${a.subcategory})` : ''}${a.era ? ` — ${a.era}` : ''}`
+
+    if (isMovement) return `You are a specialist art historian. Write a deeply researched, critically engaged article about the art movement: ${base}.
+
+${aud}
+
+Respond ONLY with valid JSON — no markdown fences, no preamble. Structure:
 {
-  "summary": "2-3 sentence beginner-friendly overview",
-  "overview": "3-4 paragraph in-depth explanation covering the key concepts, historical context where relevant, and why this matters to art students",
-  "key_concepts": [
-    { "concept": "name", "explanation": "1-2 sentence explanation" }
-  ],
-  "techniques": [
-    { "name": "technique name", "steps": "how to apply it in 2-3 sentences" }
-  ],
-  "famous_examples": [
-    { "work": "artwork or artist or example name", "note": "why it's significant" }
-  ],
+  "summary": "3-4 sentence authoritative overview: period, geographic origin, defining characteristics, lasting significance",
+  "overview": "5-6 substantial paragraphs: (1) historical/political/cultural forces that produced this movement; (2) core philosophical and aesthetic principles — what was radical or new; (3) internal development, key phases, factions; (4) relationship to preceding and concurrent movements; (5) decline, transformation, and influence on what followed. Reference specific named works, artists, dates throughout.",
+  "key_concepts": [{"concept": "specific formal or conceptual characteristic", "explanation": "2-3 sentences: precise definition, how it appears in actual artworks, what makes it distinctive"}],
+  "techniques": [{"name": "technique or formal method used by artists of this movement", "steps": "Technical description a practising artist could learn from. Include materials, process, and self-evaluation criteria."}],
+  "famous_examples": [{"work": "Title (Year) by Artist — Collection, City", "note": "2-3 sentence analysis: what to look for, what it exemplifies, why it matters"}],
   "exercises": [
-    { "title": "exercise name", "description": "practical 3-5 step exercise for students", "time": "estimated time" }
+    {"title": "Studio exercise", "description": "Multi-step studio project engaging seriously with this movement's aesthetic principles. Not pastiche — genuine investigation. Specific materials, process steps, and evaluation criteria. For intermediate adult learners.", "time": "2-4 hours", "level": "Intermediate"},
+    {"title": "Advanced project", "description": "A sustained studio or research project requiring deeper engagement. Could span several sessions.", "time": "Multiple sessions", "level": "Advanced"},
+    {"title": "Contextual study", "description": "Museum visit (physical or virtual), primary source reading, or comparative analysis exercise.", "time": "2-3 hours", "level": "All levels"}
   ],
-  "beginner_tip": "single most important piece of advice for a beginner approaching this topic",
-  "fun_fact": "one surprising, memorable fact about this topic",
-  "related_topics": ["list", "of", "3-5", "related", "topics"]
-}
+  "critical_perspectives": "2-3 paragraphs: how critics and historians have evaluated this movement over time, revisionist readings, ongoing debates, contested legacy, cultural politics where relevant",
+  "beginner_tip": "The single insight that most unlocks genuine understanding — not a platitude but a specific key to engaging with this movement critically",
+  "fun_fact": "One specific, surprising, and genuinely illuminating detail — a lesser-known fact that reveals something important about the movement or its context",
+  "related_topics": ["5-7 related movements, artists, or concepts"]
+}`
 
-Keep the tone engaging and educational. Use concrete examples. Make exercises genuinely practical with real art materials.`
+    if (isArtist) return `You are a specialist art historian. Write a comprehensive, critically informed profile of: ${base}.
+
+${aud}
+
+Respond ONLY with valid JSON — no markdown fences, no preamble:
+{
+  "summary": "3-4 sentence authoritative overview: nationality, dates, movements, distinctive contribution, historical significance",
+  "overview": "5-6 substantial paragraphs: (1) biographical context and formative training; (2) early career and development; (3) mature period and major works with specific analysis; (4) position among contemporaries and in art history; (5) critical reception during their lifetime; (6) posthumous legacy and influence on later artists",
+  "key_concepts": [{"concept": "defining formal, thematic, or conceptual characteristic", "explanation": "2-3 sentence analysis with reference to specific works"}],
+  "techniques": [{"name": "specific technique or formal method", "steps": "Detailed description a practising artist could study and attempt. Specific enough to be genuinely useful."}],
+  "famous_examples": [{"work": "Title (Year) — Collection, City", "note": "2-3 sentence formal analysis: what to look for and why it matters"}],
+  "exercises": [
+    {"title": "Formal study", "description": "A studio exercise engaging with a specific aspect of this artist's technique or formal concerns — not copying but genuine investigation of their methods. Specific materials and process.", "time": "2-3 hours", "level": "Intermediate"},
+    {"title": "Sustained response", "description": "A deeper project: sustained study of their working methods or a personal response to their thematic concerns in a contemporary context.", "time": "Multiple sessions", "level": "Advanced"}
+  ],
+  "critical_perspectives": "2-3 paragraphs: changing critical valuations, contested interpretations, identity and cultural politics where relevant, any controversies, market dynamics",
+  "beginner_tip": "The single most important insight for genuinely engaging with this artist's work — what unlocks real appreciation rather than surface response",
+  "fun_fact": "One specific, surprising detail that reveals something about character, working method, or historical context",
+  "related_topics": ["5-7 related artists, movements, or topics"]
+}`
+
+    if (isTechnique || isFundament) return `You are a practising artist and experienced art educator. Write a rigorous, technically detailed article about: ${base}.
+
+${aud}
+
+Respond ONLY with valid JSON — no markdown fences, no preamble:
+{
+  "summary": "3-4 sentence precise definition and overview: what it is, why it matters, what it enables in practice",
+  "overview": "4-5 substantial paragraphs: (1) precise technical definition with real depth; (2) perceptual and cognitive basis — what it does to the viewer's experience and why; (3) how master artists across history have understood and used it; (4) common errors and misconceptions; (5) how mastery unlocks other aspects of practice",
+  "key_concepts": [{"concept": "specific sub-concept, variation, or application", "explanation": "2-3 sentence precise technical explanation with reference to actual artworks or practice"}],
+  "techniques": [{"name": "specific method for developing skill in this area", "steps": "Step-by-step technical guidance with specific materials, process, and self-evaluation criteria. Detailed enough to actually follow."}],
+  "famous_examples": [{"work": "Title (Year) by Artist", "note": "Analysis of how this element functions in this specific work — what decisions the artist made and what effect they achieve"}],
+  "exercises": [
+    {"title": "Observational foundation", "description": "A structured perceptual exercise building fundamental awareness. Specific materials, steps, duration, and what to notice.", "time": "20-45 min", "level": "All levels"},
+    {"title": "Technical study", "description": "A sustained exercise building genuine skill. Specific challenge, process, and criteria for evaluating your own results.", "time": "1-3 hours", "level": "Intermediate"},
+    {"title": "Advanced application", "description": "A project-based exercise applying this understanding at a high level. Could span multiple sessions.", "time": "Multiple sessions", "level": "Advanced"}
+  ],
+  "critical_perspectives": "1-2 paragraphs: how understanding of this element has evolved in art education and theory, any pedagogical debates, how different traditions have approached it",
+  "beginner_tip": "The single most important insight — the thing adult learners most need to understand to make real progress with this",
+  "fun_fact": "One fascinating specific detail about how this works perceptually, historically, or in practice",
+  "related_topics": ["5-7 related elements, techniques, concepts"]
+}`
+
+    if (isMaterial) return `You are a materials specialist and practising artist. Write a comprehensive, technically authoritative article about ${base} as an art material.
+
+${aud}
+
+Respond ONLY with valid JSON — no markdown fences, no preamble:
+{
+  "summary": "3-4 sentence overview: what it is, primary uses in fine art, distinctive handling characteristics",
+  "overview": "4-5 paragraphs: (1) composition and how it works chemically/physically; (2) historical development and use with specific artists and periods; (3) handling characteristics — how it behaves, what it demands, what it enables; (4) relationship to other materials, advantages and limitations; (5) contemporary availability, archival considerations, and professional use",
+  "key_concepts": [{"concept": "specific property, characteristic, or consideration", "explanation": "precise technical explanation relevant to an artist actually working with this material"}],
+  "techniques": [{"name": "specific technique using this material", "steps": "Step-by-step technical guidance — preparation, application, finishing. Enough detail to be genuinely actionable."}],
+  "famous_examples": [{"work": "Title (Year) by Artist", "note": "What this example reveals about the material's possibilities or an artist's distinctive use of it"}],
+  "exercises": [
+    {"title": "Material investigation", "description": "A structured exploration of this material's range, behaviour, and possibilities. Specific tasks and what to discover about its character.", "time": "2-3 hours", "level": "Beginner to Intermediate"},
+    {"title": "Technical mastery study", "description": "A focused exercise developing a specific, demanding skill with this material.", "time": "3-5 hours", "level": "Intermediate to Advanced"}
+  ],
+  "critical_perspectives": "Archival quality rating, safety and toxicity notes, environmental considerations, cost and accessibility, what conservators and professional artists advise about long-term use",
+  "beginner_tip": "The most important thing to understand before working with this material — what prevents the most common and costly beginner mistakes",
+  "fun_fact": "One genuinely interesting historical or scientific fact about this material",
+  "related_topics": ["5-6 related materials, techniques, or topics"]
+}`
+
+    if (isMuseum) return `You are an art historian and gallery educator. Write a comprehensive, critically informed guide to: ${base}.
+
+${aud}
+
+Respond ONLY with valid JSON — no markdown fences, no preamble:
+{
+  "summary": "3-4 sentence overview: location, founding, collection scope, and what makes this institution distinctively significant",
+  "overview": "4-5 paragraphs: (1) founding history — who, when, why, and under what circumstances; (2) collection scope, key strengths, and distinctive holdings; (3) role in shaping art historical discourse, the canon, and public taste; (4) notable acquisitions, controversies, or landmark exhibitions; (5) visiting experience — architecture, approach to display, what to know before you go",
+  "key_concepts": [{"concept": "key aspect of collection, philosophy, or significance", "explanation": "substantive explanation of why this matters for understanding the institution and engaging with it"}],
+  "techniques": [{"name": "approach to studying in this collection", "steps": "How to get maximum value from a visit (physical or virtual) — what to prioritise, how to engage, what supplementary resources to use"}],
+  "famous_examples": [{"work": "Title (Year) by Artist — a defining work in this collection", "note": "Why this work matters and what it reveals about the collection's particular strengths or institutional history"}],
+  "exercises": [
+    {"title": "Structured collection study", "description": "A specific, task-driven way to engage with this collection online or in person. Clear tasks and reflection questions for adult learners.", "time": "Half to full day", "level": "All levels"},
+    {"title": "Comparative formal analysis", "description": "Select two works from different periods or movements in the collection. Write a 600-900 word comparative formal and contextual analysis.", "time": "3-4 hours including research", "level": "Intermediate to Advanced"}
+  ],
+  "critical_perspectives": "2 paragraphs: debates about acquisition ethics, provenance and repatriation issues, decolonisation, the canon it represents, access and inclusion, and how the institution has or hasn't evolved",
+  "beginner_tip": "The single most important piece of advice for a first-time visitor or someone engaging with the collection remotely",
+  "fun_fact": "One specific and surprising detail — an unusual acquisition story, architectural fact, or historical incident",
+  "related_topics": ["5-6 related museums, collections, or topics"]
+}`
+
+    return `You are an expert visual arts educator and critic. Write a rigorous, intellectually serious article about ${base} for adult art learners.
+
+${aud}
+
+Respond ONLY with valid JSON — no markdown fences, no preamble:
+{
+  "summary": "3-4 sentence authoritative overview",
+  "overview": "4-5 substantial paragraphs with real intellectual depth — historical context, critical significance, technical specifics, contemporary relevance",
+  "key_concepts": [{"concept": "specific concept", "explanation": "2-3 sentence precise, technically accurate explanation"}],
+  "techniques": [{"name": "technique", "steps": "detailed, actionable technical guidance specific enough to be genuinely useful"}],
+  "famous_examples": [{"work": "Specific Work (Year) by Artist", "note": "analytical note with formal analysis, not just description"}],
+  "exercises": [
+    {"title": "title", "description": "detailed multi-step studio or research exercise appropriate for adult learners", "time": "estimate", "level": "level"},
+    {"title": "title", "description": "more advanced or sustained exercise", "time": "estimate", "level": "level"}
+  ],
+  "critical_perspectives": "1-2 paragraphs on critical debates, contested aspects, historical reception",
+  "beginner_tip": "The single most important insight — specific and actionable, not a platitude",
+  "fun_fact": "One specific and illuminating fact",
+  "related_topics": ["5-7 related topics"]
+}`
   }
 
   async function sendChat() {
@@ -161,7 +270,7 @@ Keep the tone engaging and educational. Use concrete examples. Make exercises ge
       const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ANON_KEY}` },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 400, messages }),
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, messages }),
       })
       const data = await res.json()
       const reply = data?.content?.[0]?.text || 'Sorry, I could not answer that right now.'
@@ -360,11 +469,14 @@ Keep the tone engaging and educational. Use concrete examples. Make exercises ge
                     <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                       {selected.content.exercises.map((ex:any,i:number) => (
                         <div key={i} style={{ background:'rgba(167,139,250,0.06)', border:'1px solid rgba(167,139,250,0.18)', borderRadius:12, padding:'14px 16px' }}>
-                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:6, flexWrap:'wrap' }}>
                             <div style={{ fontSize:13, fontWeight:700, color:'#a78bfa' }}>Exercise {i+1}: {ex.title}</div>
-                            {ex.time && <span style={{ fontSize:10, background:'rgba(167,139,250,0.15)', borderRadius:20, padding:'2px 8px', color:'#a78bfa' }}>⏱ {ex.time}</span>}
+                            <div style={{ display:'flex', gap:5 }}>
+                              {ex.level && <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:0.8, background:'rgba(167,139,250,0.2)', borderRadius:20, padding:'2px 8px', color:'#a78bfa' }}>{ex.level}</span>}
+                              {ex.time && <span style={{ fontSize:10, background:'rgba(255,255,255,0.06)', borderRadius:20, padding:'2px 8px', color:'rgba(255,255,255,0.4)' }}>⏱ {ex.time}</span>}
+                            </div>
                           </div>
-                          <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', lineHeight:1.7 }}>{ex.description}</div>
+                          <div style={{ fontSize:13, color:'rgba(255,255,255,0.7)', lineHeight:1.75 }}>{ex.description}</div>
                         </div>
                       ))}
                     </div>
@@ -388,9 +500,17 @@ Keep the tone engaging and educational. Use concrete examples. Make exercises ge
                 </div>
 
                 {/* Related topics */}
+                {/* Critical perspectives */}
+                {selected.content.critical_perspectives && (
+                  <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, padding:'14px 16px', marginBottom:8 }}>
+                    <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.2, color:'rgba(255,255,255,0.3)', marginBottom:8 }}>Critical Perspectives</div>
+                    <p style={{ color:'rgba(255,255,255,0.65)', fontSize:13, lineHeight:1.8, margin:0, whiteSpace:'pre-line' }}>{selected.content.critical_perspectives}</p>
+                  </div>
+                )}
+
                 {selected.content.related_topics?.length > 0 && (
                   <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
-                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)', alignSelf:'center' }}>Related:</span>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)', alignSelf:'center' }}>Explore next:</span>
                     {selected.content.related_topics.map((r:string,i:number) => (
                       <button key={i} onClick={() => setQuery(r)} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', borderRadius:20, padding:'3px 10px', cursor:'pointer', fontSize:11, transition:'all 0.12s' }}>
                         {r}
@@ -409,8 +529,22 @@ Keep the tone engaging and educational. Use concrete examples. Make exercises ge
                   <circle cx="9" cy="39" r="4" fill="#FF9F1C" opacity="0.5"/>
                 </svg>
                 <div style={{ fontSize:15, fontFamily:"'Fredoka One',sans-serif" }}>Article not yet generated</div>
-                <button onClick={() => generateContent(selected)} style={{ marginTop:16, padding:'10px 24px', background:'rgba(255,159,28,0.15)', border:'1px solid rgba(255,159,28,0.3)', color:'#FF9F1C', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:700 }}>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.2)', marginTop:8, marginBottom:16 }}>First visit generates a full in-depth article — cached permanently after that</div>
+                <button onClick={() => generateContent(selected)} style={{ padding:'10px 24px', background:'rgba(255,159,28,0.15)', border:'1px solid rgba(255,159,28,0.3)', color:'#FF9F1C', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:700 }}>
                   ✦ Generate Article
+                </button>
+              </div>
+            )}
+
+            {/* Regenerate button for already-generated articles */}
+            {selected.content && !generating && (
+              <div style={{ textAlign:'right', marginTop:-12, marginBottom:8 }}>
+                <button onClick={async () => {
+                  await supabase.from('knowledge_articles').update({ content: null, generated_at: null }).eq('id', selected.id)
+                  setSelected(prev => prev ? { ...prev, content: null } : prev)
+                  setTimeout(() => generateContent({ ...selected, content: null }), 100)
+                }} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.2)', cursor:'pointer', fontSize:11, padding:'4px 8px' }}>
+                  ↺ Regenerate article
                 </button>
               </div>
             )}
