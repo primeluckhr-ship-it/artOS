@@ -1,709 +1,676 @@
-import { useState, useEffect, useRef } from 'react'
+/**
+ * KnowledgeLibrary — ArtOS museum experience
+ * Visual-first, immersive, premium art discovery platform
+ */
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../App'
 
 const SUPABASE_URL = 'https://hpyznfxnltreviijyhct.supabase.co'
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhweXpuZnhubHRyZXZpaWp5aGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3OTU2MzAsImV4cCI6MjA5ODM3MTYzMH0.IcAVafpZzPFxi1hK5exfIljt2Y-sd1Xz2LurlcimlNw'
 
-const CATS = [
-  { key:'all',          label:'All',           color:'#fff',    icon:'◎' },
-  { key:'fundamentals', label:'Fundamentals',  color:'#1ECBE1', icon:'⬡' },
-  { key:'drawing',      label:'Drawing',       color:'#f9a8d4', icon:'✎' },
-  { key:'painting',     label:'Painting',      color:'#FF6B35', icon:'⬤' },
-  { key:'materials',    label:'Materials',     color:'#4ade80', icon:'◈' },
-  { key:'movements',    label:'Movements',     color:'#FF9F1C', icon:'⟳' },
-  { key:'artists',      label:'Artists',       color:'#a78bfa', icon:'✦' },
-  { key:'styles',       label:'Styles',        color:'#FFE135', icon:'◇' },
-  { key:'museums',      label:'Museums',       color:'#fb923c', icon:'⌂' },
-]
-
-// Category fallback images
-const CAT_IMAGES: Record<string, string> = {
-  fundamentals: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1400&q=85&fit=crop',
-  drawing:      'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=1400&q=85&fit=crop',
-  painting:     'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1400&q=85&fit=crop',
-  materials:    'https://images.unsplash.com/photo-1560421683-6856ea585c78?w=1400&q=85&fit=crop',
-  movements:    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1400&q=85&fit=crop',
-  artists:      'https://images.unsplash.com/photo-1577083165633-14ebcdb0f658?w=1400&q=85&fit=crop',
-  styles:       'https://images.unsplash.com/photo-1547826039-a0c20c946bd0?w=1400&q=85&fit=crop',
-  museums:      'https://images.unsplash.com/photo-1565099824688-45e04a8b3827?w=1400&q=85&fit=crop',
+// ── Types ────────────────────────────────────────────────────────
+interface Masterpiece {
+  id: string; slug: string; title: string; artist: string
+  artist_slug: string | null; year: string | null; medium: string | null
+  dimensions: string | null; museum: string | null; museum_city: string | null
+  movement_slug: string | null; image_url: string | null; description: string | null
+  historical_context: string | null; tags: string[]; is_featured: boolean; view_count: number
 }
-
 interface Article {
   id: string; slug: string; title: string; category: string
-  subcategory: string | null; tags: string[]; difficulty: string
-  era: string | null; image_url: string | null; image_query: string | null
-  content: any | null; generated_at: string | null; view_count: number
+  subcategory: string | null; tags: string[]; era: string | null
+  image_url: string | null; content: any | null; view_count: number
 }
 
+// ── Movement hero images (curated category backgrounds) ──────────
+const CAT_IMAGES: Record<string, string> = {
+  movements:    'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
+  artists:      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/800px-1665_Girl_with_a_Pearl_Earring.jpg',
+  fundamentals: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1400&q=85',
+  drawing:      'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=1400&q=85',
+  painting:     'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1400&q=85',
+  materials:    'https://images.unsplash.com/photo-1560421683-6856ea585c78?w=1400&q=85',
+  styles:       'https://images.unsplash.com/photo-1547826039-a0c20c946bd0?w=1400&q=85',
+  museums:      'https://images.unsplash.com/photo-1565099824688-45e04a8b3827?w=1400&q=85',
+}
+
+const ERA_ORDER = ['Ancient','Medieval','Renaissance','Baroque & Rococo','Neoclassicism','Romanticism','19th Century','Early Modern','Modern','Contemporary']
+
+type LibView = 'home' | 'gallery' | 'movement' | 'artwork' | 'timeline' | 'search' | 'category'
+
 export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
-  const [cat, setCat]           = useState('all')
-  const [query, setQuery]       = useState('')
-  const [articles, setArticles] = useState<Article[]>([])
-  const [filtered, setFiltered] = useState<Article[]>([])
-  const [selected, setSelected] = useState<Article | null>(null)
-  const [generating, setGen]    = useState(false)
-  const [chatInput, setChatIn]  = useState('')
-  const [chatLog, setChatLog]   = useState<{role:'user'|'ai';text:string}[]>([])
-  const [chatLoading, setChatL] = useState(false)
-  const [imgLoaded, setImgLoaded] = useState(false)
+  const [view, setView]           = useState<LibView>('home')
+  const [articles, setArticles]   = useState<Article[]>([])
+  const [pieces, setPieces]       = useState<Masterpiece[]>([])
+  const [selArticle, setSelArt]   = useState<Article | null>(null)
+  const [selPiece, setSelPiece]   = useState<Masterpiece | null>(null)
+  const [artContent, setArtCont]  = useState<any>(null)
+  const [generating, setGen]      = useState(false)
+  const [aiGuide, setAiGuide]     = useState<{q:string;a:string}[]>([])
+  const [guideInput, setGuideIn]  = useState('')
+  const [guideLoading, setGuideL] = useState(false)
+  const [searchQ, setSearchQ]     = useState('')
+  const [searchRes, setSearchRes] = useState<{pieces:Masterpiece[];articles:Article[]} | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [catFilter, setCatFilter] = useState('all')
+  const [zoomed, setZoomed]       = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => { loadArticles() }, [])
-  useEffect(() => { filterArticles() }, [cat, query, articles])
-  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight }, [chatLog])
+  useEffect(() => { loadAll() }, [])
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight }, [aiGuide])
 
-  async function loadArticles() {
-    const { data } = await supabase
-      .from('knowledge_articles')
-      .select('id,slug,title,category,subcategory,tags,difficulty,era,image_url,image_query,content,generated_at,view_count')
-      .order('category').order('title')
-    setArticles(data || [])
+  async function loadAll() {
+    const [{ data: arts }, { data: ps }] = await Promise.all([
+      supabase.from('knowledge_articles').select('id,slug,title,category,subcategory,tags,era,image_url,content,view_count').order('category').order('title'),
+      supabase.from('masterpieces').select('*').order('is_featured', { ascending: false }).order('view_count', { ascending: false }),
+    ])
+    setArticles(arts || [])
+    setPieces(ps || [])
   }
 
-  function filterArticles() {
-    let list = articles
-    if (cat !== 'all') list = list.filter(a => a.category === cat)
-    if (query.trim()) {
-      const q = query.toLowerCase()
-      list = list.filter(a =>
-        a.title.toLowerCase().includes(q) ||
-        (a.subcategory || '').toLowerCase().includes(q) ||
-        (a.tags || []).some(t => t.toLowerCase().includes(q))
-      )
-    }
-    setFiltered(list)
+  // ── Open movement article ────────────────────────────────────
+  async function openMovement(a: Article) {
+    setSelArt(a); setArtCont(a.content); setView('movement')
+    supabase.from('knowledge_articles').update({ view_count: (a.view_count||0)+1 }).eq('id', a.id)
+    if (!a.content) await generateArticle(a)
   }
 
-  async function openArticle(a: Article) {
-    setSelected(a); setChatLog([]); setImgLoaded(false)
-    supabase.from('knowledge_articles').update({ view_count: (a.view_count||0) + 1 }).eq('id', a.id)
-    if (!a.content) generateContent(a)
-  }
-
-  async function generateContent(a: Article) {
+  async function generateArticle(a: Article) {
     setGen(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ANON_KEY}` },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 4000, messages: [{ role: 'user', content: buildPrompt(a) }] }),
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6', max_tokens: 4000,
+          messages: [{ role: 'user', content: buildArticlePrompt(a) }],
+        }),
       })
       const data = await res.json()
       const text = data?.content?.[0]?.text || ''
-      const clean = text.replace(/```json|```/g, '').trim()
-      const content = JSON.parse(clean)
+      const content = JSON.parse(text.replace(/```json|```/g, '').trim())
       await supabase.from('knowledge_articles').update({ content, generated_at: new Date().toISOString() }).eq('id', a.id)
-      setSelected(prev => prev?.id === a.id ? { ...prev, content } : prev)
+      setArtCont(content)
       setArticles(prev => prev.map(x => x.id === a.id ? { ...x, content } : x))
-    } catch(e) { console.error('Gen failed:', e) }
+    } catch(e) { console.error(e) }
     setGen(false)
   }
 
-  async function sendChat() {
-    if (!chatInput.trim() || !selected || chatLoading) return
-    const userMsg = chatInput.trim(); setChatIn('')
-    setChatLog(prev => [...prev, { role:'user', text:userMsg }]); setChatL(true)
+  // ── Open artwork detail ──────────────────────────────────────
+  async function openPiece(p: Masterpiece) {
+    setSelPiece(p); setAiGuide([]); setView('artwork')
+    supabase.from('masterpieces').update({ view_count: p.view_count+1 }).eq('id', p.id)
+  }
+
+  // ── AI Art Guide ─────────────────────────────────────────────
+  async function askArtGuide(preset?: string) {
+    const q = preset || guideInput.trim()
+    if (!q || !selPiece || guideLoading) return
+    setGuideIn('')
+    setAiGuide(prev => [...prev, { q, a: '' }])
+    setGuideL(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ANON_KEY}` },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 800, messages: [{ role:'user', content:`You are an expert art tutor and historian specialising in "${selected.title}". The audience is adult learners — art students, educators, and practitioners. Be intellectually rigorous and specific. Use precise terminology.\n\nContext summary: ${selected.content?.summary || ''}\n\nQuestion: ${userMsg}` }] }),
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6', max_tokens: 600,
+          messages: [{ role: 'user', content: `You are an expert museum art guide with deep knowledge of art history. You are currently looking at: "${selPiece.title}" by ${selPiece.artist} (${selPiece.year || 'date unknown'}), ${selPiece.medium || ''}, housed at ${selPiece.museum || 'unknown museum'}.\n\nDescription: ${selPiece.description || ''}\n\nUser question: ${q}\n\nAnswer clearly, precisely, and with genuine depth. For "explain like I'm 10" be engaging and concrete. For technical questions be accurate and specific.` }],
+        }),
       })
       const data = await res.json()
-      setChatLog(prev => [...prev, { role:'ai', text: data?.content?.[0]?.text || 'Could not answer — try again.' }])
-    } catch { setChatLog(prev => [...prev, { role:'ai', text:'Connection error.' }]) }
-    setChatL(false)
+      const answer = data?.content?.[0]?.text || 'No response.'
+      setAiGuide(prev => prev.map((e,i) => i === prev.length-1 ? { ...e, a: answer } : e))
+    } catch { setAiGuide(prev => prev.map((e,i) => i === prev.length-1 ? { ...e, a: 'Connection error.' } : e)) }
+    setGuideL(false)
   }
 
-  const catColor  = (c: string) => CATS.find(x => x.key === c)?.color || '#fff'
-  const heroImage = (a: Article) => a.image_url || CAT_IMAGES[a.category] || CAT_IMAGES.movements
+  // ── AI Search ─────────────────────────────────────────────────
+  async function runSearch() {
+    if (!searchQ.trim()) return
+    setSearching(true); setView('search')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ANON_KEY}` },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6', max_tokens: 400,
+          messages: [{ role: 'user', content: `Extract 3-8 relevant search keywords from this art library query. Return ONLY a JSON array of strings, nothing else. Query: "${searchQ}"` }],
+        }),
+      })
+      const data = await res.json()
+      const keywords: string[] = JSON.parse(data?.content?.[0]?.text?.replace(/```json|```/g,'').trim() || '[]')
+      const q = keywords.join(' ').toLowerCase()
+      const matchedPieces = pieces.filter(p => keywords.some(k => p.title.toLowerCase().includes(k) || p.artist.toLowerCase().includes(k) || (p.movement_slug||'').includes(k) || (p.tags||[]).some(t => t.includes(k))))
+      const matchedArts   = articles.filter(a => keywords.some(k => a.title.toLowerCase().includes(k) || (a.tags||[]).some(t => t.includes(k)) || (a.subcategory||'').toLowerCase().includes(k)))
+      setSearchRes({ pieces: matchedPieces, articles: matchedArts })
+    } catch { setSearchRes({ pieces: [], articles: [] }) }
+    setSearching(false)
+  }
 
-  // ── Render ─────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────
+  const movementPieces = (slug: string) => pieces.filter(p => p.movement_slug === slug)
+  const catColor = (cat: string): string => ({
+    fundamentals:'#1ECBE1', drawing:'#f9a8d4', painting:'#FF6B35', materials:'#4ade80',
+    movements:'#FF9F1C', artists:'#a78bfa', styles:'#FFE135', museums:'#fb923c',
+  }[cat] || '#fff')
+  const movements = articles.filter(a => a.category === 'movements')
+  const eraGroups: Record<string, Article[]> = {}
+  for (const m of movements) {
+    const e = m.subcategory || 'Other'
+    if (!eraGroups[e]) eraGroups[e] = []
+    eraGroups[e].push(m)
+  }
+  const featuredPieces = pieces.filter(p => p.is_featured)
+
   return (
-    <div style={{ display:'flex', height:'calc(100vh - 54px)', fontFamily:"'Inter',sans-serif", position:'relative', zIndex:1 }}>
+    <div style={{ minHeight:'calc(100vh - 54px)', background:'#080610', color:'#fff', fontFamily:"'Inter',sans-serif", position:'relative', zIndex:1 }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&display=swap');
-        @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,600&display=swap');
         @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes spin{to{transform:rotate(360deg)}}
-        ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px}
-        .art-card:hover{transform:translateY(-3px) scale(1.01);box-shadow:0 20px 50px rgba(0,0,0,0.5)!important}
-        .cat-pill:hover{opacity:0.85}
-        .article-row:hover{background:rgba(255,255,255,0.06)!important}
+        .art-card:hover .art-card-img{transform:scale(1.06)}
+        .art-card:hover .art-card-overlay{opacity:1}
+        ::-webkit-scrollbar{width:4px;height:4px}
+        ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:4px}
       `}</style>
 
-      {/* ══════════════════════════════════════════════════════════
-          LEFT PANEL — browse
-          ══════════════════════════════════════════════════════════ */}
-      <div style={{ width: selected ? 300 : '100%', flexShrink:0, display:'flex', flexDirection:'column', borderRight:'1px solid rgba(255,255,255,0.07)', transition:'width 0.35s cubic-bezier(.4,0,.2,1)', overflow:'hidden' }}>
-
-        {/* Header */}
-        <div style={{ padding:'20px 16px 12px', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:14 }}>
-            <div style={{ width:34, height:34, borderRadius:10, background:'linear-gradient(135deg,#FF9F1C,#FF6B35)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 14 Q4 12 7 9 L13 3 Q14.5 1.5 15.5 2.5 Q16.5 3.5 15 5 L9 11 Q6 14 4 16Z" fill="white" opacity="0.9"/><circle cx="2.5" cy="14.5" r="1.5" fill="white" opacity="0.6"/></svg>
-            </div>
-            <div>
-              <div style={{ fontFamily:"'Fredoka One',sans-serif", fontSize:17, color:'#fff', lineHeight:1.1 }}>Knowledge Library</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)' }}>{articles.length} articles · AI-powered</div>
-            </div>
-          </div>
-
-          {/* Search */}
-          <div style={{ position:'relative', marginBottom:12 }}>
-            <svg style={{ position:'absolute', left:11, top:'50%', transform:'translateY(-50%)', opacity:0.3 }} width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="white" strokeWidth="1.5"/><path d="M9 9 L13 13" stroke="white" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search movements, artists, techniques…" style={{ width:'100%', background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'9px 12px 9px 32px', color:'#fff', fontSize:12, outline:'none', boxSizing:'border-box' }}/>
-          </div>
-
-          {/* Category pills */}
-          <div style={{ display:'flex', gap:5, flexWrap:'wrap', paddingBottom:4 }}>
-            {CATS.map(c => (
-              <button key={c.key} className="cat-pill" onClick={() => setCat(c.key)} style={{ background: cat===c.key ? `${c.color}20` : 'rgba(255,255,255,0.04)', border:`1.5px solid ${cat===c.key?c.color+'55':'rgba(255,255,255,0.07)'}`, color: cat===c.key?c.color:'rgba(255,255,255,0.35)', borderRadius:20, padding:'4px 9px', cursor:'pointer', fontSize:10, fontWeight:700, transition:'all 0.12s', whiteSpace:'nowrap' }}>
-                {c.icon} {c.label}
-              </button>
-            ))}
-          </div>
+      {/* ── TOP NAV ──────────────────────────────────────────────── */}
+      <nav style={{ background:'rgba(8,6,16,0.95)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'0 24px', display:'flex', alignItems:'center', gap:0, height:46, position:'sticky', top:0, zIndex:50, backdropFilter:'blur(16px)' }}>
+        {/* Back breadcrumb */}
+        {view !== 'home' && (
+          <button onClick={() => { setView('home'); setSelArt(null); setSelPiece(null); setSearchRes(null) }} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.4)', cursor:'pointer', fontSize:12, padding:'0 16px 0 0', display:'flex', alignItems:'center', gap:5 }}>
+            ← Library
+          </button>
+        )}
+        {/* Nav items */}
+        <div style={{ display:'flex', gap:4 }}>
+          {[['home','🏛 Gallery'],['timeline','⟳ Timeline'],['search','⌕ Search']].map(([v,l]) => (
+            <button key={v} onClick={() => setView(v as LibView)} style={{ background: view===v?'rgba(255,255,255,0.08)':'none', border:'none', color: view===v?'#fff':'rgba(255,255,255,0.4)', cursor:'pointer', fontSize:12, fontWeight:600, padding:'0 14px', height:46, borderBottom: view===v?'2px solid #FF9F1C':'2px solid transparent', transition:'all 0.15s' }}>{l}</button>
+          ))}
         </div>
+        {/* Search bar */}
+        <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
+          <input value={searchQ} onChange={e => setSearchQ(e.target.value)} onKeyDown={e => e.key==='Enter' && runSearch()} placeholder="Search artworks, artists, movements…" style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'6px 12px', color:'#fff', fontSize:12, width:260, outline:'none' }}/>
+          <button onClick={runSearch} style={{ background:'rgba(255,159,28,0.2)', border:'1px solid rgba(255,159,28,0.3)', color:'#FF9F1C', borderRadius:8, padding:'6px 12px', cursor:'pointer', fontSize:12, fontWeight:700 }}>Search</button>
+        </div>
+      </nav>
 
-        {/* Article list / grid */}
-        <div style={{ flex:1, overflowY:'auto', padding:'4px 8px 20px' }}>
+      {/* ══════════════════════════════════════════════════════════════
+          HOME — Museum entrance gallery
+          ══════════════════════════════════════════════════════════════ */}
+      {view === 'home' && (
+        <div style={{ animation:'fadeIn 0.4s ease' }}>
 
-          {/* ── Card grid (no article open, all/category view) ── */}
-          {!selected && !query && (
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:10, padding:'4px 4px 8px' }}>
-              {filtered.map(a => (
-                <button key={a.id} className="art-card" onClick={() => openArticle(a)} style={{
-                  background:'none', border:'none', cursor:'pointer', padding:0, textAlign:'left',
-                  borderRadius:14, overflow:'hidden', position:'relative',
-                  boxShadow:'0 6px 24px rgba(0,0,0,0.35)', transition:'transform 0.2s, box-shadow 0.2s',
-                  aspectRatio:'3/4',
-                }}>
-                  {/* Image */}
-                  <div style={{ position:'absolute', inset:0, backgroundImage:`url(${heroImage(a)})`, backgroundSize:'cover', backgroundPosition:'center' }}/>
-                  {/* Gradient overlay */}
-                  <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.92) 40%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0.1) 100%)' }}/>
-                  {/* Category badge */}
-                  <div style={{ position:'absolute', top:10, left:10 }}>
-                    <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:1, background:`${catColor(a.category)}cc`, color:'#000', borderRadius:20, padding:'2px 7px' }}>{a.category}</span>
-                  </div>
-                  {/* Generated dot */}
-                  {a.content && <div style={{ position:'absolute', top:10, right:10, width:7, height:7, borderRadius:'50%', background:'#4ade80', boxShadow:'0 0 6px #4ade8088' }}/>}
-                  {/* Text */}
-                  <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'14px 12px 12px' }}>
-                    {a.era && <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', letterSpacing:0.8, marginBottom:4 }}>{a.era}</div>}
-                    <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:15, fontWeight:700, color:'#fff', lineHeight:1.25, marginBottom:4 }}>{a.title}</div>
-                    {a.content?.summary && <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' } as any}>{a.content.summary}</div>}
-                  </div>
-                </button>
-              ))}
+          {/* Hero — featured masterpiece */}
+          {featuredPieces[0] && (
+            <div style={{ position:'relative', height:'60vh', minHeight:400, cursor:'pointer', overflow:'hidden' }} onClick={() => openPiece(featuredPieces[0])}>
+              <img src={featuredPieces[0].image_url||''} alt={featuredPieces[0].title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 20%', display:'block', transition:'transform 8s ease' }}/>
+              <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, #080610 0%, rgba(8,6,16,0.5) 50%, rgba(8,6,16,0.15) 100%)' }}/>
+              <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 48px 48px' }}>
+                <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:2, color:'rgba(255,159,28,0.8)', marginBottom:10 }}>Featured Masterpiece</div>
+                <h1 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:48, fontWeight:900, color:'#fff', margin:0, lineHeight:1.05, textShadow:'0 4px 30px rgba(0,0,0,0.6)' }}>{featuredPieces[0].title}</h1>
+                <div style={{ fontSize:16, color:'rgba(255,255,255,0.6)', marginTop:10, fontStyle:'italic' }}>{featuredPieces[0].artist} · {featuredPieces[0].year}</div>
+                <div style={{ fontSize:13, color:'rgba(255,255,255,0.35)', marginTop:4 }}>{featuredPieces[0].museum}, {featuredPieces[0].museum_city}</div>
+                <div style={{ marginTop:16, display:'inline-flex', alignItems:'center', gap:6, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:20, padding:'6px 14px', fontSize:12, color:'rgba(255,255,255,0.6)' }}>
+                  View artwork →
+                </div>
+              </div>
             </div>
           )}
 
-          {/* ── Compact list (search results or article open) ── */}
-          {(selected || query) && (() => {
-            if (query.trim()) return (
-              <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-                {filtered.length === 0 && <div style={{ textAlign:'center', padding:40, color:'rgba(255,255,255,0.2)', fontSize:12 }}>No results for "{query}"</div>}
-                {filtered.map(a => <ArticleRow key={a.id} a={a} active={selected?.id===a.id} onSelect={openArticle} color={catColor(a.category)} />)}
+          {/* Featured artwork strip */}
+          <div style={{ padding:'32px 32px 0' }}>
+            <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', marginBottom:18 }}>
+              <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, color:'#fff', margin:0 }}>Masterpieces</h2>
+              <span style={{ fontSize:12, color:'rgba(255,255,255,0.3)' }}>{pieces.length} works</span>
+            </div>
+            {/* Horizontal scroll of artwork cards */}
+            <div style={{ display:'flex', gap:16, overflowX:'auto', paddingBottom:16, scrollSnapType:'x mandatory', WebkitOverflowScrolling:'touch' }}>
+              {featuredPieces.slice(1, 12).map(p => (
+                <ArtworkCard key={p.id} p={p} onClick={() => openPiece(p)} size="medium" />
+              ))}
+            </div>
+          </div>
+
+          {/* Movements by era */}
+          <div style={{ padding:'32px' }}>
+            <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, color:'#fff', margin:'0 0 24px' }}>Art Movements</h2>
+            {ERA_ORDER.filter(e => eraGroups[e]).map(era => (
+              <div key={era} style={{ marginBottom:32 }}>
+                <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.5, color:'rgba(255,159,28,0.6)', marginBottom:12 }}>{era}</div>
+                <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+                  {(eraGroups[era]||[]).map(a => {
+                    const mPieces = movementPieces(a.slug)
+                    const heroImg = mPieces[0]?.image_url || a.image_url || CAT_IMAGES.movements
+                    return (
+                      <button key={a.slug} onClick={() => openMovement(a)} style={{ position:'relative', width:200, height:130, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', flexShrink:0, background:'#1a1030', padding:0, textAlign:'left' }}>
+                        <img src={heroImg} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block', transition:'transform 0.5s ease' }} onMouseOver={e => (e.currentTarget.style.transform='scale(1.08)')} onMouseOut={e => (e.currentTarget.style.transform='scale(1)')}/>
+                        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, rgba(8,6,16,0.3) 60%, transparent 100%)' }}/>
+                        <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 12px 12px' }}>
+                          <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:14, fontWeight:700, color:'#fff', lineHeight:1.2 }}>{a.title}</div>
+                          {a.era && <div style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginTop:2 }}>{a.era}</div>}
+                          {mPieces.length > 0 && <div style={{ fontSize:9, color:'rgba(255,159,28,0.7)', marginTop:3 }}>{mPieces.length} artwork{mPieces.length!==1?'s':''}</div>}
+                        </div>
+                        {a.content && <div style={{ position:'absolute', top:8, right:8, width:6, height:6, borderRadius:'50%', background:'#4ade80' }}/>}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            )
-            const groups: Record<string,Article[]> = {}
-            filtered.forEach(a => { const g = a.subcategory||a.category; (groups[g]=groups[g]||[]).push(a) })
-            return Object.entries(groups).map(([g, arts]) => (
-              <div key={g} style={{ marginBottom:14 }}>
-                <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:1.2, color:'rgba(255,255,255,0.22)', padding:'6px 10px 4px' }}>{g}</div>
-                {arts.map(a => <ArticleRow key={a.id} a={a} active={selected?.id===a.id} onSelect={openArticle} color={catColor(a.category)} />)}
-              </div>
-            ))
-          })()}
+            ))}
+          </div>
+
+          {/* All masterpieces grid */}
+          <div style={{ padding:'0 32px 48px' }}>
+            <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, color:'#fff', margin:'0 0 24px' }}>All Artworks</h2>
+            <div style={{ columns:'4 240px', gap:12 }}>
+              {pieces.map(p => (
+                <div key={p.id} style={{ breakInside:'avoid', marginBottom:12, cursor:'pointer', borderRadius:10, overflow:'hidden', border:'1px solid rgba(255,255,255,0.06)', position:'relative' }} onClick={() => openPiece(p)}
+                  onMouseEnter={e => { const img = e.currentTarget.querySelector('img') as HTMLImageElement; if(img) img.style.transform='scale(1.04)' }}
+                  onMouseLeave={e => { const img = e.currentTarget.querySelector('img') as HTMLImageElement; if(img) img.style.transform='scale(1)' }}>
+                  <img src={p.image_url||''} alt={p.title} style={{ width:'100%', display:'block', transition:'transform 0.4s ease' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }}/>
+                  <div style={{ padding:'10px 12px', background:'rgba(15,10,30,0.95)' }}>
+                    <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:13, fontWeight:700, color:'#fff', lineHeight:1.3, marginBottom:2 }}>{p.title}</div>
+                    <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', fontStyle:'italic' }}>{p.artist}</div>
+                    {p.year && <div style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:2 }}>{p.year}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ══════════════════════════════════════════════════════════
-          RIGHT PANEL — article
-          ══════════════════════════════════════════════════════════ */}
-      {selected && (
-        <div style={{ flex:1, overflowY:'auto', background:'rgba(10,6,22,1)' }}>
-
-          {/* ── Hero ─────────────────────────────────────────── */}
-          <div style={{ position:'relative', height:380, overflow:'hidden' }}>
-            <img src={heroImage(selected)} alt={selected.title} onLoad={() => setImgLoaded(true)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', opacity: imgLoaded ? 1 : 0, transition:'opacity 0.6s ease', display:'block' }}/>
-            {/* Multi-layer gradient for legibility */}
-            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, rgba(10,6,22,0.15) 0%, rgba(10,6,22,0.1) 40%, rgba(10,6,22,0.75) 75%, rgba(10,6,22,1) 100%)' }}/>
-            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to right, rgba(10,6,22,0.4) 0%, transparent 60%)' }}/>
-            {/* Close */}
-            <button onClick={() => { setSelected(null); setChatLog([]) }} style={{ position:'absolute', top:16, right:16, width:36, height:36, borderRadius:'50%', background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.7)', cursor:'pointer', fontSize:18, backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
-            {/* Hero text */}
-            <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 36px 32px' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:1.5, background:catColor(selected.category), color:'#000', borderRadius:20, padding:'3px 10px' }}>{CATS.find(c=>c.key===selected.category)?.label}</span>
-                {selected.subcategory && <span style={{ fontSize:10, color:'rgba(255,255,255,0.5)' }}>{selected.subcategory}</span>}
-                {selected.era && <span style={{ fontSize:10, color:'rgba(255,255,255,0.4)', fontStyle:'italic' }}>{selected.era}</span>}
-                {selected.content && <span style={{ fontSize:10, color:'#4ade80', opacity:0.8 }}>✓ generated</span>}
-              </div>
-              <h1 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:38, fontWeight:900, color:'#fff', margin:0, lineHeight:1.1, textShadow:'0 2px 20px rgba(0,0,0,0.5)' }}>{selected.title}</h1>
-              {/* Tags */}
-              <div style={{ display:'flex', flexWrap:'wrap', gap:5, marginTop:10 }}>
-                {(selected.tags||[]).slice(0,6).map(t => (
-                  <span key={t} style={{ fontSize:9, background:'rgba(255,255,255,0.12)', backdropFilter:'blur(4px)', border:'1px solid rgba(255,255,255,0.15)', borderRadius:20, padding:'2px 8px', color:'rgba(255,255,255,0.65)' }}>{t}</span>
-                ))}
+      {/* ══════════════════════════════════════════════════════════════
+          MOVEMENT detail page
+          ══════════════════════════════════════════════════════════════ */}
+      {view === 'movement' && selArticle && (
+        <div style={{ animation:'fadeIn 0.3s ease' }}>
+          {/* Hero */}
+          <div style={{ position:'relative', height:'55vh', minHeight:360, overflow:'hidden' }}>
+            <img src={movementPieces(selArticle.slug)[0]?.image_url || selArticle.image_url || CAT_IMAGES.movements} alt={selArticle.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%', display:'block' }}/>
+            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, #080610 0%, rgba(8,6,16,0.6) 50%, rgba(8,6,16,0.2) 100%)' }}/>
+            <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 48px 40px' }}>
+              <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:2, color:'#FF9F1C', marginBottom:8 }}>Art Movement</div>
+              <h1 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:52, fontWeight:900, color:'#fff', margin:0, lineHeight:1 }}>{selArticle.title}</h1>
+              {selArticle.era && <div style={{ fontSize:16, color:'rgba(255,255,255,0.5)', marginTop:10, fontStyle:'italic' }}>{selArticle.era}</div>}
+              <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:12 }}>
+                {(selArticle.tags||[]).slice(0,6).map(t => <span key={t} style={{ fontSize:10, background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:20, padding:'3px 10px', color:'rgba(255,255,255,0.5)' }}>{t}</span>)}
               </div>
             </div>
           </div>
 
-          {/* ── Article body ──────────────────────────────────── */}
-          <div style={{ padding:'32px 36px 60px', maxWidth:820 }}>
+          <div style={{ maxWidth:1100, margin:'0 auto', padding:'40px 40px 60px' }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 380px', gap:48, alignItems:'start' }}>
 
-            {/* Generating */}
-            {generating && (
-              <div style={{ display:'flex', alignItems:'center', gap:14, background:'rgba(255,159,28,0.08)', border:'1px solid rgba(255,159,28,0.2)', borderRadius:14, padding:'18px 22px', animation:'fadeIn 0.3s ease' }}>
-                <svg width="28" height="28" viewBox="0 0 28 28" style={{ animation:'spin 1.4s ease-in-out infinite', flexShrink:0 }}>
-                  <path d="M4 22 Q6 20 10 16 L20 6 Q22 4 23.5 5.5 Q25 7 23 9 L13 19 Q9 23 7 25Z" fill="#FF9F1C" opacity="0.9"/>
-                  <circle cx="4.5" cy="22.5" r="2.5" fill="#FF9F1C" opacity="0.5"/>
-                </svg>
-                <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:'#FF9F1C', marginBottom:2 }}>Generating article…</div>
-                  <div style={{ fontSize:12, color:'rgba(255,255,255,0.4)' }}>Writing a deep, rigorously researched article on {selected.title}</div>
-                </div>
-              </div>
-            )}
-
-            {/* Not yet generated */}
-            {!selected.content && !generating && (
-              <div style={{ textAlign:'center', padding:'40px 0' }}>
-                <div style={{ fontSize:48, marginBottom:16, opacity:0.3 }}>✦</div>
-                <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:20, color:'rgba(255,255,255,0.5)', marginBottom:8 }}>Article not yet written</div>
-                <div style={{ fontSize:13, color:'rgba(255,255,255,0.3)', marginBottom:24, lineHeight:1.7 }}>First visit triggers AI generation — a full, rigorously researched<br/>article cached permanently for all future readers.</div>
-                <button onClick={() => generateContent(selected)} style={{ padding:'12px 28px', background:'linear-gradient(135deg,#FF9F1C,#FF6B35)', border:'none', borderRadius:12, color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', boxShadow:'0 8px 24px rgba(255,159,28,0.3)', fontFamily:"'Fredoka One',sans-serif" }}>
-                  ✦ Generate Article
-                </button>
-              </div>
-            )}
-
-            {/* ── ARTICLE CONTENT ──────────────────────────────── */}
-            {selected.content && !generating && (
-              <div style={{ animation:'fadeUp 0.5s ease' }}>
-
-                {/* Summary / lead */}
-                <p style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:19, fontStyle:'italic', color:'rgba(255,255,255,0.75)', lineHeight:1.8, borderLeft:`3px solid ${catColor(selected.category)}`, paddingLeft:20, marginBottom:36, marginTop:0 }}>
-                  {selected.content.summary}
-                </p>
-
-                {/* Overview */}
-                {selected.content.overview && (
-                  <div style={{ marginBottom:36 }}>
-                    <SectionTitle color={catColor(selected.category)}>Overview</SectionTitle>
-                    <div style={{ fontSize:15, color:'rgba(255,255,255,0.72)', lineHeight:1.9, whiteSpace:'pre-line' }}>{selected.content.overview}</div>
+              {/* Left: article content */}
+              <div>
+                {generating && (
+                  <div style={{ display:'flex', alignItems:'center', gap:12, color:'rgba(255,159,28,0.7)', marginBottom:24 }}>
+                    <svg width="20" height="20" viewBox="0 0 20 20" style={{ animation:'spin 1.2s ease-in-out infinite' }}>
+                      <path d="M3 15 Q5 13 8 10 L15 3 Q16.5 1.5 17.5 2.5 Q18.5 3.5 17 5 L10 12 Q7 15 5 17Z" fill="#FF9F1C" opacity="0.9"/>
+                      <circle cx="3.5" cy="15.5" r="1.5" fill="#FF9F1C" opacity="0.5"/>
+                    </svg>
+                    <span style={{ fontSize:13 }}>Generating in-depth article…</span>
                   </div>
                 )}
 
-                {/* Pull quote */}
-                {selected.content.pull_quote && (
-                  <div style={{ margin:'0 0 36px', padding:'32px 0', borderTop:`1px solid ${catColor(selected.category)}30`, borderBottom:`1px solid ${catColor(selected.category)}30`, textAlign:'center', position:'relative' }}>
-                    <span style={{ position:'absolute', top:-18, left:'50%', transform:'translateX(-50%)', fontSize:64, lineHeight:1, color:catColor(selected.category), opacity:0.18, fontFamily:'Georgia,serif', userSelect:'none' }}>"</span>
-                    <p style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontStyle:'italic', fontWeight:600, color:'#fff', lineHeight:1.55, margin:0, maxWidth:620, marginLeft:'auto', marginRight:'auto', textShadow:`0 0 40px ${catColor(selected.category)}30` }}>
-                      {selected.content.pull_quote}
-                    </p>
-                  </div>
+                {!artContent && !generating && (
+                  <button onClick={() => generateArticle(selArticle)} style={{ padding:'12px 24px', background:'linear-gradient(135deg,#FF9F1C,#FF6B35)', border:'none', borderRadius:12, color:'#fff', fontSize:14, fontFamily:"'Fredoka One',sans-serif", cursor:'pointer', marginBottom:32 }}>
+                    ✦ Generate Article
+                  </button>
                 )}
 
-                {/* Timeline — for movements and artists */}
-                {selected.content.timeline?.length > 0 && (
-                  <div style={{ marginBottom:36 }}>
-                    <SectionTitle color={catColor(selected.category)}>Timeline</SectionTitle>
-                    <div style={{ position:'relative', paddingLeft:24 }}>
-                      {/* Vertical line */}
-                      <div style={{ position:'absolute', left:7, top:8, bottom:8, width:2, background:`linear-gradient(to bottom, ${catColor(selected.category)}, ${catColor(selected.category)}20)`, borderRadius:2 }}/>
-                      <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-                        {selected.content.timeline.map((t:any, i:number) => (
-                          <div key={i} style={{ display:'flex', gap:16, paddingBottom:20, position:'relative' }}>
-                            <div style={{ width:16, height:16, borderRadius:'50%', background:catColor(selected.category), border:'3px solid rgba(10,6,22,1)', flexShrink:0, marginTop:2, position:'absolute', left:-17, boxShadow:`0 0 8px ${catColor(selected.category)}60` }}/>
-                            <div style={{ paddingLeft:8 }}>
-                              <div style={{ fontSize:11, fontWeight:800, color:catColor(selected.category), letterSpacing:0.5, marginBottom:3 }}>{t.year}</div>
-                              <div style={{ fontSize:14, color:'rgba(255,255,255,0.7)', lineHeight:1.65 }}>{t.event}</div>
-                            </div>
+                {artContent && (
+                  <div style={{ animation:'slideUp 0.5s ease' }}>
+                    {/* Pull quote */}
+                    {artContent.pull_quote && (
+                      <div style={{ margin:'0 0 36px', padding:'28px 0', borderTop:'1px solid rgba(255,159,28,0.2)', borderBottom:'1px solid rgba(255,159,28,0.2)', textAlign:'center' }}>
+                        <p style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:24, fontStyle:'italic', fontWeight:600, color:'rgba(255,255,255,0.9)', lineHeight:1.5, margin:0 }}>"{artContent.pull_quote}"</p>
+                      </div>
+                    )}
+                    {/* Overview */}
+                    {artContent.overview && <div style={{ fontSize:15, color:'rgba(255,255,255,0.75)', lineHeight:2, marginBottom:36, whiteSpace:'pre-line' }}>{artContent.overview}</div>}
+                    {/* Key concepts */}
+                    {artContent.key_concepts?.length > 0 && (
+                      <div style={{ marginBottom:36 }}>
+                        <H2>Key Concepts</H2>
+                        {artContent.key_concepts.map((k:any, i:number) => (
+                          <div key={i} style={{ borderLeft:'2px solid rgba(255,159,28,0.4)', paddingLeft:20, paddingBottom:18, marginBottom:0 }}>
+                            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:16, color:'#fff', marginBottom:6 }}>{k.concept}</div>
+                            <div style={{ fontSize:13, color:'rgba(255,255,255,0.58)', lineHeight:1.8 }}>{k.explanation}</div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Divider */}
-                <Divider color={catColor(selected.category)} />
-
-                {/* Key concepts */}
-                {selected.content.key_concepts?.length > 0 && (
-                  <div style={{ marginBottom:36 }}>
-                    <SectionTitle color={catColor(selected.category)}>Key Concepts</SectionTitle>
-                    <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
-                      {selected.content.key_concepts.map((k:any, i:number) => (
-                        <div key={i} style={{ borderLeft:`2px solid ${catColor(selected.category)}40`, paddingLeft:20, paddingTop:14, paddingBottom:14, borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:16, fontWeight:700, color:'#fff', marginBottom:6 }}>{k.concept}</div>
-                          <div style={{ fontSize:14, color:'rgba(255,255,255,0.6)', lineHeight:1.75 }}>{k.explanation}</div>
+                    )}
+                    {/* Techniques */}
+                    {artContent.techniques?.length > 0 && (
+                      <div style={{ marginBottom:36 }}>
+                        <H2>Techniques & Methods</H2>
+                        <div style={{ display:'grid', gap:10 }}>
+                          {artContent.techniques.map((t:any, i:number) => (
+                            <div key={i} style={{ background:'rgba(74,222,128,0.04)', border:'1px solid rgba(74,222,128,0.12)', borderRadius:12, padding:'16px 18px' }}>
+                              <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:15, color:'#4ade80', marginBottom:6 }}>{t.name}</div>
+                              <div style={{ fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.8 }}>{t.steps}</div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Techniques */}
-                {selected.content.techniques?.length > 0 && (
-                  <div style={{ marginBottom:36 }}>
-                    <SectionTitle color="#4ade80">Techniques</SectionTitle>
-                    <div style={{ display:'grid', gap:12 }}>
-                      {selected.content.techniques.map((t:any, i:number) => (
-                        <div key={i} style={{ background:'rgba(74,222,128,0.04)', border:'1px solid rgba(74,222,128,0.14)', borderRadius:14, padding:'18px 20px' }}>
-                          <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:16, color:'#4ade80', marginBottom:8 }}>{t.name}</div>
-                          <div style={{ fontSize:14, color:'rgba(255,255,255,0.65)', lineHeight:1.8 }}>{t.steps}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Famous examples — visual cards with artwork images */}
-                {selected.content.famous_examples?.length > 0 && (
-                  <div style={{ marginBottom:36 }}>
-                    <SectionTitle color="#FF9F1C">Notable Works & Examples</SectionTitle>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                      {selected.content.famous_examples.map((e:any, i:number) => {
-                        // Derive an image search term from the work title
-                        const workQuery = encodeURIComponent(e.work.split('(')[0].trim() + ' art painting')
-                        const imgSrc = `https://source.unsplash.com/480x300/?${workQuery}`
-                        return (
-                          <div key={i} style={{ borderRadius:14, overflow:'hidden', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,159,28,0.15)', position:'relative' }}>
-                            {/* Artwork image */}
-                            <div style={{ height:130, position:'relative', overflow:'hidden', background:`linear-gradient(135deg,rgba(255,159,28,0.15),rgba(255,107,53,0.1))` }}>
-                              <img
-                                src={imgSrc}
-                                alt={e.work}
-                                style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }}
-                                onError={(el) => { (el.target as HTMLImageElement).style.display='none' }}
-                              />
-                              <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(10,6,22,0.85) 0%,transparent 60%)' }}/>
-                              <div style={{ position:'absolute', bottom:8, left:10, right:10 }}>
-                                <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.9)', fontStyle:'italic', lineHeight:1.3 }}>{e.work}</div>
+                      </div>
+                    )}
+                    {/* Critical perspectives */}
+                    {artContent.critical_perspectives && (
+                      <div style={{ marginBottom:36, borderLeft:'2px solid rgba(255,255,255,0.08)', paddingLeft:20 }}>
+                        <H2>Critical Perspectives</H2>
+                        <div style={{ fontSize:14, color:'rgba(255,255,255,0.55)', lineHeight:1.9, fontStyle:'italic', whiteSpace:'pre-line' }}>{artContent.critical_perspectives}</div>
+                      </div>
+                    )}
+                    {/* Exercises */}
+                    {artContent.exercises?.length > 0 && (
+                      <div style={{ marginBottom:36 }}>
+                        <H2>Studio Exercises</H2>
+                        {artContent.exercises.map((ex:any, i:number) => (
+                          <div key={i} style={{ background:'rgba(167,139,250,0.05)', border:'1px solid rgba(167,139,250,0.14)', borderRadius:14, overflow:'hidden', marginBottom:10 }}>
+                            <div style={{ background:'rgba(167,139,250,0.1)', padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                              <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:15, color:'#a78bfa' }}>Exercise {i+1}: {ex.title}</div>
+                              <div style={{ display:'flex', gap:6 }}>
+                                {ex.level && <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:0.8, background:'rgba(167,139,250,0.2)', borderRadius:20, padding:'2px 8px', color:'#a78bfa' }}>{ex.level}</span>}
+                                {ex.time && <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)', background:'rgba(255,255,255,0.06)', borderRadius:20, padding:'2px 8px' }}>⏱ {ex.time}</span>}
                               </div>
                             </div>
-                            {/* Analysis */}
-                            <div style={{ padding:'12px 14px' }}>
-                              <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', lineHeight:1.7 }}>{e.note}</div>
-                            </div>
+                            <div style={{ padding:'12px 16px', fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.8 }}>{ex.description}</div>
                           </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <Divider color={catColor(selected.category)} />
-
-                {/* Critical perspectives */}
-                {selected.content.critical_perspectives && (
-                  <div style={{ marginBottom:36 }}>
-                    <SectionTitle color="rgba(255,255,255,0.5)">Critical Perspectives</SectionTitle>
-                    <div style={{ fontSize:14, color:'rgba(255,255,255,0.6)', lineHeight:1.9, whiteSpace:'pre-line', fontStyle:'italic', borderLeft:'2px solid rgba(255,255,255,0.1)', paddingLeft:20 }}>
-                      {selected.content.critical_perspectives}
-                    </div>
-                  </div>
-                )}
-
-                {/* Exercises */}
-                {selected.content.exercises?.length > 0 && (
-                  <div style={{ marginBottom:36 }}>
-                    <SectionTitle color="#a78bfa">Studio Exercises</SectionTitle>
-                    <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                      {selected.content.exercises.map((ex:any, i:number) => (
-                        <div key={i} style={{ background:'rgba(167,139,250,0.05)', border:'1px solid rgba(167,139,250,0.16)', borderRadius:16, overflow:'hidden' }}>
-                          <div style={{ background:'rgba(167,139,250,0.1)', padding:'12px 18px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:8 }}>
-                            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:15, color:'#a78bfa' }}>Exercise {i+1}: {ex.title}</div>
-                            <div style={{ display:'flex', gap:6, flexShrink:0 }}>
-                              {ex.level && <span style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:0.8, background:'rgba(167,139,250,0.25)', borderRadius:20, padding:'2px 8px', color:'#a78bfa' }}>{ex.level}</span>}
-                              {ex.time && <span style={{ fontSize:10, color:'rgba(255,255,255,0.35)', background:'rgba(255,255,255,0.07)', borderRadius:20, padding:'2px 8px' }}>⏱ {ex.time}</span>}
-                            </div>
-                          </div>
-                          <div style={{ padding:'14px 18px', fontSize:13, color:'rgba(255,255,255,0.68)', lineHeight:1.8 }}>{ex.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Pull quote — fun fact */}
-                {selected.content.fun_fact && (
-                  <blockquote style={{ margin:'0 0 28px', padding:'20px 24px', background:`linear-gradient(135deg,${catColor(selected.category)}10,rgba(255,255,255,0.03))`, borderLeft:`3px solid ${catColor(selected.category)}`, borderRadius:'0 12px 12px 0', position:'relative' }}>
-                    <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.2, color:catColor(selected.category), opacity:0.7, marginBottom:8 }}>✨ Did You Know</div>
-                    <p style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:16, fontStyle:'italic', color:'rgba(255,255,255,0.75)', lineHeight:1.75, margin:0 }}>{selected.content.fun_fact}</p>
-                  </blockquote>
-                )}
-
-                {/* Beginner tip */}
-                {selected.content.beginner_tip && (
-                  <div style={{ background:'rgba(30,203,225,0.06)', border:'1px solid rgba(30,203,225,0.16)', borderRadius:14, padding:'16px 20px', marginBottom:28 }}>
-                    <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.2, color:'#1ECBE1', marginBottom:8 }}>💡 Key Insight</div>
-                    <p style={{ fontSize:14, color:'rgba(255,255,255,0.72)', lineHeight:1.8, margin:0 }}>{selected.content.beginner_tip}</p>
-                  </div>
-                )}
-
-                {/* Related topics */}
-                {selected.content.related_topics?.length > 0 && (
-                  <div style={{ marginBottom:36 }}>
-                    <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.2, color:'rgba(255,255,255,0.3)', marginBottom:12 }}>Explore Next</div>
-                    <div style={{ display:'flex', flexWrap:'wrap', gap:7 }}>
-                      {selected.content.related_topics.map((r:string, i:number) => (
-                        <button key={i} onClick={() => { setSelected(null); setQuery(r) }} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.12)', color:'rgba(255,255,255,0.55)', borderRadius:20, padding:'5px 13px', cursor:'pointer', fontSize:12, transition:'all 0.15s', fontWeight:500 }}>
-                          {r} →
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Regenerate */}
-                <div style={{ textAlign:'right', borderTop:'1px solid rgba(255,255,255,0.06)', paddingTop:16, marginTop:8 }}>
-                  <button onClick={async () => {
-                    await supabase.from('knowledge_articles').update({ content:null, generated_at:null }).eq('id', selected.id)
-                    const fresh = { ...selected, content:null }
-                    setSelected(fresh)
-                    setTimeout(() => generateContent(fresh), 100)
-                  }} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.2)', cursor:'pointer', fontSize:11, padding:'4px 0' }}>
-                    ↺ Regenerate article
-                  </button>
-                </div>
-
-                {/* ── AI Tutor ─────────────────────────────────── */}
-                <div style={{ marginTop:40, borderTop:'1px solid rgba(255,255,255,0.08)', paddingTop:28 }}>
-                  <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:20, color:'#fff', marginBottom:4 }}>Ask the AI Tutor</div>
-                  <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)', marginBottom:18 }}>Ask any question about {selected.title} — get expert-level answers tailored to your question</div>
-
-                  <div ref={chatRef} style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:14, marginBottom:12, minHeight:80, maxHeight:280, overflowY:'auto', display:'flex', flexDirection:'column', gap:10 }}>
-                    {chatLog.length === 0 && (
-                      <div style={{ color:'rgba(255,255,255,0.2)', fontSize:13, textAlign:'center', padding:'20px 0', fontStyle:'italic' }}>
-                        Your questions appear here. Ask anything about this topic.
+                        ))}
                       </div>
                     )}
-                    {chatLog.map((m, i) => (
-                      <div key={i} style={{ display:'flex', gap:10, justifyContent: m.role==='user'?'flex-end':'flex-start' }}>
-                        {m.role==='ai' && <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#FF6B35,#FF9F1C)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Fredoka One',sans-serif", fontSize:12, color:'#fff', flexShrink:0 }}>P</div>}
-                        <div style={{ background: m.role==='user'?'rgba(139,92,246,0.18)':'rgba(255,255,255,0.05)', border:`1px solid ${m.role==='user'?'rgba(139,92,246,0.3)':'rgba(255,255,255,0.08)'}`, borderRadius: m.role==='user'?'14px 14px 3px 14px':'14px 14px 14px 3px', padding:'10px 14px', maxWidth:'82%', fontSize:13, color:'rgba(255,255,255,0.82)', lineHeight:1.7 }}>
-                          {m.text}
-                        </div>
+                    <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
+                      <span style={{ fontSize:11, color:'rgba(255,255,255,0.3)' }}>Explore next:</span>
+                      {artContent.related_topics?.map((r:string, i:number) => (
+                        <button key={i} onClick={() => { const a = articles.find(x => x.title.toLowerCase()===r.toLowerCase()); if(a) openMovement(a) }} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', borderRadius:20, padding:'3px 12px', cursor:'pointer', fontSize:11 }}>{r} →</button>
+                      ))}
+                    </div>
+                    {artContent.fun_fact && (
+                      <div style={{ background:'rgba(255,225,53,0.05)', border:'1px solid rgba(255,225,53,0.12)', borderRadius:12, padding:'14px 18px', marginBottom:20 }}>
+                        <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'rgba(255,225,53,0.6)', marginBottom:6 }}>Did You Know</div>
+                        <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:14, fontStyle:'italic', color:'rgba(255,255,255,0.65)', lineHeight:1.75 }}>{artContent.fun_fact}</div>
                       </div>
-                    ))}
-                    {chatLoading && (
-                      <div style={{ display:'flex', gap:10 }}>
-                        <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,#FF6B35,#FF9F1C)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Fredoka One',sans-serif", fontSize:12, color:'#fff' }}>P</div>
-                        <div style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:'14px 14px 14px 3px', padding:'12px 16px', color:'rgba(255,255,255,0.35)', fontSize:12 }}>Thinking…</div>
+                    )}
+                    {artContent.beginner_tip && (
+                      <div style={{ background:'rgba(30,203,225,0.05)', border:'1px solid rgba(30,203,225,0.12)', borderRadius:12, padding:'14px 18px' }}>
+                        <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'rgba(30,203,225,0.6)', marginBottom:6 }}>Key Insight</div>
+                        <div style={{ fontSize:14, color:'rgba(255,255,255,0.65)', lineHeight:1.75 }}>{artContent.beginner_tip}</div>
                       </div>
                     )}
                   </div>
-
-                  <div style={{ display:'flex', gap:8 }}>
-                    <input value={chatInput} onChange={e => setChatIn(e.target.value)} onKeyDown={e => e.key==='Enter' && sendChat()} placeholder={`Ask about ${selected.title}…`} style={{ flex:1, background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'11px 14px', color:'#fff', fontSize:13, outline:'none' }}/>
-                    <button onClick={sendChat} disabled={chatLoading} style={{ padding:'11px 18px', background:'rgba(139,92,246,0.18)', border:'1px solid rgba(139,92,246,0.3)', color:'#a78bfa', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:700 }}>Ask →</button>
-                  </div>
-                </div>
-
+                )}
               </div>
-            )}
+
+              {/* Right sidebar: timeline + artworks */}
+              <div>
+                {/* Timeline */}
+                {artContent?.timeline?.length > 0 && (
+                  <div style={{ marginBottom:40 }}>
+                    <H2>Timeline</H2>
+                    <div style={{ position:'relative', paddingLeft:20 }}>
+                      <div style={{ position:'absolute', left:6, top:6, bottom:6, width:2, background:'linear-gradient(to bottom, #FF9F1C, rgba(255,159,28,0.1))', borderRadius:2 }}/>
+                      {artContent.timeline.map((t:any, i:number) => (
+                        <div key={i} style={{ paddingBottom:18, position:'relative' }}>
+                          <div style={{ width:12, height:12, borderRadius:'50%', background:'#FF9F1C', border:'2px solid #080610', position:'absolute', left:-17, top:3, boxShadow:'0 0 6px rgba(255,159,28,0.5)' }}/>
+                          <div style={{ fontSize:11, fontWeight:800, color:'rgba(255,159,28,0.8)', marginBottom:3 }}>{t.year}</div>
+                          <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', lineHeight:1.6 }}>{t.event}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Movement artworks */}
+                {movementPieces(selArticle.slug).length > 0 && (
+                  <div>
+                    <H2>Works from this Movement</H2>
+                    <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                      {movementPieces(selArticle.slug).map(p => (
+                        <div key={p.id} onClick={() => openPiece(p)} style={{ display:'flex', gap:10, cursor:'pointer', borderRadius:10, padding:8, border:'1px solid rgba(255,255,255,0.06)', background:'rgba(255,255,255,0.02)', transition:'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.05)'}
+                          onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.02)'}>
+                          <div style={{ width:60, height:60, borderRadius:8, overflow:'hidden', flexShrink:0, background:'rgba(255,255,255,0.05)' }}>
+                            <img src={p.image_url||''} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:13, color:'#fff', fontWeight:700, lineHeight:1.3 }}>{p.title}</div>
+                            <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:2, fontStyle:'italic' }}>{p.artist}</div>
+                            <div style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:1 }}>{p.year} · {p.museum}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
-    </div>
-  )
-}
 
-// ── Sub-components ──────────────────────────────────────────────
-function ArticleRow({ a, active, onSelect, color }: { a:Article; active:boolean; onSelect:(a:Article)=>void; color:string }) {
-  const showThumb = ['movements','artists','museums','styles'].includes(a.category)
-  const thumb = a.image_url || CAT_IMAGES[a.category]
-  return (
-    <button onClick={() => onSelect(a)} className="article-row" style={{
-      width:'100%', background: active?`${color}10`:'transparent',
-      border:`1px solid ${active?color+'35':'transparent'}`, borderRadius:10, padding:'7px 9px',
-      cursor:'pointer', textAlign:'left', display:'flex', alignItems:'center', gap:9, transition:'background 0.1s',
-    }}>
-      {showThumb ? (
-        <div style={{ width:38, height:38, borderRadius:8, overflow:'hidden', flexShrink:0, background:`${color}18`, border:`1px solid ${color}20` }}>
-          <img src={thumb} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }}/>
+      {/* ══════════════════════════════════════════════════════════════
+          ARTWORK detail — museum lightbox
+          ══════════════════════════════════════════════════════════════ */}
+      {view === 'artwork' && selPiece && (
+        <div style={{ animation:'fadeIn 0.3s ease', display:'flex', height:'calc(100vh - 100px)', minHeight:600 }}>
+          {/* Left: image */}
+          <div style={{ flex:'1 1 60%', position:'relative', background:'#050408', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', cursor:zoomed?'zoom-out':'zoom-in' }} onClick={() => setZoomed(z => !z)}>
+            <img src={selPiece.image_url||''} alt={selPiece.title} style={{ maxWidth: zoomed?'none':'90%', maxHeight: zoomed?'none':'90%', width:zoomed?'auto':'auto', height:zoomed?'140%':'auto', objectFit:'contain', transition:'all 0.4s ease', display:'block' }} onError={e => { (e.target as HTMLImageElement).src=''; e.currentTarget.parentElement!.style.background='rgba(255,159,28,0.06)' }}/>
+            <div style={{ position:'absolute', bottom:12, right:12, fontSize:10, color:'rgba(255,255,255,0.25)', background:'rgba(0,0,0,0.4)', borderRadius:6, padding:'4px 8px' }}>{zoomed?'Click to zoom out':'Click to zoom'}</div>
+          </div>
+
+          {/* Right: info + AI guide */}
+          <div style={{ width:380, flexShrink:0, overflowY:'auto', borderLeft:'1px solid rgba(255,255,255,0.07)', background:'rgba(10,6,20,0.98)', display:'flex', flexDirection:'column' }}>
+            <div style={{ padding:'28px 24px 0', flex:1 }}>
+              <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:26, fontWeight:900, color:'#fff', margin:'0 0 6px', lineHeight:1.1 }}>{selPiece.title}</h2>
+              <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:16, color:'rgba(255,255,255,0.55)', fontStyle:'italic', marginBottom:20 }}>{selPiece.artist}</div>
+
+              {/* Metadata grid */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'8px 0', marginBottom:20, borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:16 }}>
+                {[['Year', selPiece.year], ['Medium', selPiece.medium], ['Dimensions', selPiece.dimensions], ['Museum', selPiece.museum], ['Location', selPiece.museum_city], ['Movement', selPiece.movement_slug?.replace(/-/g,' ')]].filter(([,v]) => v).map(([k,v]) => (
+                  <div key={k as string}>
+                    <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'rgba(255,255,255,0.25)', marginBottom:2 }}>{k}</div>
+                    <div style={{ fontSize:12, color:'rgba(255,255,255,0.7)', lineHeight:1.4 }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Description */}
+              {selPiece.description && (
+                <p style={{ fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.85, borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:16, marginBottom:20 }}>{selPiece.description}</p>
+              )}
+
+              {/* AI Art Guide */}
+              <div style={{ borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:16 }}>
+                <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'rgba(255,255,255,0.3)', marginBottom:12 }}>🎨 AI Art Guide</div>
+                {/* Preset questions */}
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+                  {['Explain this painting','Analyse the composition','How was this made?','What can I learn from this?','Historical context'].map(q => (
+                    <button key={q} onClick={() => askArtGuide(q)} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.1)', color:'rgba(255,255,255,0.5)', borderRadius:20, padding:'4px 10px', cursor:'pointer', fontSize:10, fontWeight:600, transition:'all 0.12s' }}
+                      onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,0.1)'}
+                      onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,0.05)'}>{q}</button>
+                  ))}
+                </div>
+                {/* Chat */}
+                <div ref={chatRef} style={{ background:'rgba(255,255,255,0.02)', borderRadius:10, padding:10, marginBottom:10, maxHeight:220, overflowY:'auto', display:'flex', flexDirection:'column', gap:10 }}>
+                  {aiGuide.length === 0 && <div style={{ fontSize:11, color:'rgba(255,255,255,0.2)', textAlign:'center', padding:12 }}>Ask the AI guide anything about this artwork</div>}
+                  {aiGuide.map((e, i) => (
+                    <div key={i}>
+                      <div style={{ fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.6)', marginBottom:4 }}>You: {e.q}</div>
+                      {e.a ? <div style={{ fontSize:12, color:'rgba(255,255,255,0.75)', lineHeight:1.7, background:'rgba(255,159,28,0.06)', borderLeft:'2px solid rgba(255,159,28,0.3)', paddingLeft:10, borderRadius:'0 6px 6px 0', padding:'8px 10px' }}>{e.a}</div>
+                           : <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)', fontStyle:'italic' }}>Thinking…</div>}
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display:'flex', gap:6 }}>
+                  <input value={guideInput} onChange={e => setGuideIn(e.target.value)} onKeyDown={e => e.key==='Enter' && askArtGuide()} placeholder="Ask anything…" style={{ flex:1, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'8px 10px', color:'#fff', fontSize:12, outline:'none' }}/>
+                  <button onClick={() => askArtGuide()} disabled={guideLoading} style={{ background:'rgba(255,159,28,0.2)', border:'1px solid rgba(255,159,28,0.3)', color:'#FF9F1C', borderRadius:8, padding:'8px 12px', cursor:'pointer', fontSize:12, fontWeight:700 }}>Ask</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Similar works */}
+            {(() => {
+              const similar = pieces.filter(p => p.id !== selPiece.id && (p.movement_slug === selPiece.movement_slug || p.artist === selPiece.artist)).slice(0, 4)
+              return similar.length > 0 ? (
+                <div style={{ padding:'20px 24px 24px', borderTop:'1px solid rgba(255,255,255,0.07)', marginTop:16 }}>
+                  <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'rgba(255,255,255,0.25)', marginBottom:10 }}>Similar Works</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+                    {similar.map(p => (
+                      <div key={p.id} onClick={() => openPiece(p)} style={{ cursor:'pointer', borderRadius:8, overflow:'hidden', border:'1px solid rgba(255,255,255,0.08)' }}>
+                        <img src={p.image_url||''} alt={p.title} style={{ width:'100%', height:70, objectFit:'cover', display:'block' }}/>
+                        <div style={{ padding:'5px 7px', background:'rgba(15,10,25,0.95)' }}>
+                          <div style={{ fontSize:10, fontWeight:600, color:'rgba(255,255,255,0.7)', lineHeight:1.3, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{p.title}</div>
+                          <div style={{ fontSize:9, color:'rgba(255,255,255,0.3)', fontStyle:'italic' }}>{p.artist}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null
+            })()}
+          </div>
         </div>
-      ) : (
-        <div style={{ width:4, height:32, borderRadius:2, background: active?color:'rgba(255,255,255,0.1)', flexShrink:0 }}/>
       )}
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:12.5, fontWeight:600, color: active?'#fff':'rgba(255,255,255,0.75)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.title}</div>
-        {a.content
-          ? <div style={{ fontSize:10, color:'rgba(255,255,255,0.28)', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.content.summary?.slice(0,50)}…</div>
-          : <div style={{ fontSize:10, color:`${color}70`, marginTop:1 }}>{a.subcategory || a.era || ''}</div>
-        }
-      </div>
-      {a.content && <div style={{ width:5, height:5, borderRadius:'50%', background:'#4ade80', flexShrink:0, opacity:0.7 }}/>}
-    </button>
-  )
-}
 
-function SectionTitle({ color, children }: { color:string; children:React.ReactNode }) {
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16 }}>
-      <div style={{ width:3, height:18, borderRadius:2, background:color, flexShrink:0 }}/>
-      <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.4, color }}>{children}</div>
+      {/* ══════════════════════════════════════════════════════════════
+          TIMELINE — horizontal scroll through art history
+          ══════════════════════════════════════════════════════════════ */}
+      {view === 'timeline' && (
+        <div style={{ padding:'32px', animation:'fadeIn 0.3s ease' }}>
+          <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:28, color:'#fff', margin:'0 0 8px' }}>Art History Timeline</h2>
+          <p style={{ color:'rgba(255,255,255,0.35)', fontSize:13, margin:'0 0 32px' }}>From prehistoric cave paintings to contemporary AI art — 30,000 years of human creativity</p>
+          {ERA_ORDER.filter(e => eraGroups[e]).map((era, ei) => (
+            <div key={era} style={{ marginBottom:48 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:20 }}>
+                <div style={{ width:10, height:10, borderRadius:'50%', background:'#FF9F1C', boxShadow:'0 0 12px rgba(255,159,28,0.5)' }}/>
+                <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:20, color:'#fff' }}>{era}</div>
+                <div style={{ flex:1, height:1, background:'rgba(255,255,255,0.06)' }}/>
+              </div>
+              <div style={{ display:'flex', gap:16, overflowX:'auto', paddingBottom:12 }}>
+                {(eraGroups[era]||[]).map(a => {
+                  const hero = movementPieces(a.slug)[0]?.image_url || a.image_url || CAT_IMAGES.movements
+                  return (
+                    <button key={a.slug} onClick={() => openMovement(a)} style={{ minWidth:200, height:140, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', flexShrink:0, background:'#1a1030', padding:0, position:'relative' }}>
+                      <img src={hero} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }}/>
+                      <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, transparent 60%)' }}/>
+                      <div style={{ position:'absolute', bottom:10, left:12, right:12 }}>
+                        <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:14, fontWeight:700, color:'#fff' }}>{a.title}</div>
+                        {a.era && <div style={{ fontSize:10, color:'rgba(255,159,28,0.6)', marginTop:2 }}>{a.era}</div>}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
+          SEARCH results
+          ══════════════════════════════════════════════════════════════ */}
+      {view === 'search' && (
+        <div style={{ padding:'32px', animation:'fadeIn 0.3s ease' }}>
+          <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:24, color:'#fff', margin:'0 0 6px' }}>Search results for "{searchQ}"</h2>
+          {searching && <div style={{ color:'rgba(255,255,255,0.4)', fontSize:13, margin:'20px 0' }}>Searching…</div>}
+          {searchRes && !searching && (
+            <>
+              {searchRes.pieces.length > 0 && (
+                <div style={{ marginBottom:40 }}>
+                  <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.3, color:'rgba(255,255,255,0.3)', margin:'20px 0 14px' }}>Artworks ({searchRes.pieces.length})</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:16 }}>
+                    {searchRes.pieces.map(p => <ArtworkCard key={p.id} p={p} onClick={() => openPiece(p)} size="large"/>)}
+                  </div>
+                </div>
+              )}
+              {searchRes.articles.length > 0 && (
+                <div>
+                  <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.3, color:'rgba(255,255,255,0.3)', marginBottom:14 }}>Articles ({searchRes.articles.length})</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:12 }}>
+                    {searchRes.articles.map(a => {
+                      const hero = movementPieces(a.slug)[0]?.image_url || a.image_url || CAT_IMAGES[a.category]
+                      return (
+                        <button key={a.slug} onClick={() => a.category==='movements' ? openMovement(a) : undefined} style={{ position:'relative', height:130, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', background:'#1a1030', padding:0, textAlign:'left' }}>
+                          <img src={hero} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                          <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, transparent 60%)' }}/>
+                          <div style={{ position:'absolute', bottom:10, left:12, right:12 }}>
+                            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:13, fontWeight:700, color:'#fff' }}>{a.title}</div>
+                            <div style={{ fontSize:10, color:'rgba(255,255,255,0.4)', marginTop:2 }}>{a.category} {a.era?`· ${a.era}`:''}</div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+              {searchRes.pieces.length === 0 && searchRes.articles.length === 0 && (
+                <div style={{ color:'rgba(255,255,255,0.3)', fontSize:14, padding:'40px 0', textAlign:'center' }}>No results found for "{searchQ}" — try different keywords</div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
-function Divider({ color }: { color:string }) {
+// ── Sub-components ────────────────────────────────────────────────
+
+function ArtworkCard({ p, onClick, size }: { p: Masterpiece; onClick: () => void; size: 'medium' | 'large' }) {
+  const w = size === 'large' ? '100%' : 200
+  const h = size === 'large' ? 260 : 150
   return (
-    <div style={{ height:1, background:`linear-gradient(90deg,${color}30,transparent)`, margin:'0 0 32px' }}/>
+    <div onClick={onClick} className="art-card" style={{ width:w, flexShrink:0, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.07)', background:'#0f0a1e', position:'relative', scrollSnapAlign:'start' }}>
+      <div style={{ height:h, overflow:'hidden' }}>
+        <img src={p.image_url||''} alt={p.title} className="art-card-img" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block', transition:'transform 0.5s ease' }} onError={e => { (e.target as HTMLImageElement).style.background='rgba(255,159,28,0.08)' }}/>
+      </div>
+      <div style={{ padding:'10px 12px 12px' }}>
+        <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:13, fontWeight:700, color:'#fff', lineHeight:1.3, marginBottom:2 }}>{p.title}</div>
+        <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', fontStyle:'italic' }}>{p.artist}</div>
+        {p.year && <div style={{ fontSize:10, color:'rgba(255,255,255,0.22)', marginTop:2 }}>{p.year} · {p.museum_city}</div>}
+      </div>
+    </div>
   )
 }
 
-function buildPrompt(a: Article): string {
-  const isMovement  = a.category === 'movements'
-  const isArtist    = a.category === 'artists'
-  const isMaterial  = a.category === 'materials'
-  const isTechnique = a.category === 'drawing' || a.category === 'painting'
-  const isFundament = a.category === 'fundamentals'
-  const isMuseum    = a.category === 'museums'
+function H2({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, marginTop:4 }}>
+      <div style={{ width:3, height:18, background:'#FF9F1C', borderRadius:2, flexShrink:0 }}/>
+      <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.4, color:'rgba(255,159,28,0.7)' }}>{children}</div>
+    </div>
+  )
+}
 
-  const aud = `The audience is adult learners — art students, educators, working artists, and serious enthusiasts. Do NOT simplify or write at a children's level. Be intellectually rigorous: use precise art historical and technical terminology, engage with real critical debates, reference specific named artworks with dates and current locations, and treat the reader as capable of absorbing complex ideas. Avoid vague generalisations.`
+function buildArticlePrompt(a: Article): string {
+  return `You are a specialist art historian. Write a deeply researched article about the art movement: ${a.title}${a.era ? ` (${a.era})` : ''}.
 
-  const base = `${a.title}${a.subcategory ? ` (${a.subcategory})` : ''}${a.era ? ` — ${a.era}` : ''}`
+Audience: adult learners, art students, educators, and serious enthusiasts. Be intellectually rigorous. Use precise terminology. Reference specific named artworks with dates and museum locations. Avoid generalisations.
 
-  if (isMovement) return `You are a specialist art historian. Write a deeply researched, critically engaged article about the art movement: ${base}.
-
-${aud}
-
-Respond ONLY with valid JSON — no markdown fences, no preamble:
+Respond ONLY with valid JSON — no markdown:
 {
-  "summary": "3-4 sentence authoritative overview: period, geographic origin, defining characteristics, lasting significance",
-  "pull_quote": "A single vivid, quotable sentence that captures the essence or spirit of this movement — the kind of line that would look striking typeset large on a magazine page",
-  "timeline": [{"year": "specific year or date range", "event": "significant development, artwork, or moment in the movement — be specific, name works and artists"}],
-  "overview": "5-6 substantial paragraphs: (1) historical/political/cultural forces; (2) core philosophical and aesthetic principles — what was radical; (3) internal development, key phases, factions; (4) relationship to preceding and concurrent movements; (5) decline, transformation, and influence on what followed. Reference specific named works, artists, dates throughout.",
-  "key_concepts": [{"concept": "specific formal or conceptual characteristic", "explanation": "2-3 sentences: precise definition, how it appears in actual artworks, what makes it distinctive"}],
-  "techniques": [{"name": "technique or formal method used by artists of this movement", "steps": "Technical description a practising artist could learn from. Include materials, process, and self-evaluation criteria."}],
-  "famous_examples": [{"work": "Title (Year) by Artist — Collection, City", "note": "2-3 sentence analysis: what to look for, what it exemplifies, why it matters"}],
+  "pull_quote": "A single vivid, quotable sentence capturing the essence or spirit of this movement — striking when typeset large",
+  "overview": "5-6 substantial paragraphs: (1) historical/political/cultural forces that produced it; (2) core philosophical and aesthetic principles — what was radical; (3) internal evolution, phases, factions; (4) relationship to preceding movements; (5) decline, transformation, influence on what followed. Reference specific named works and artists with dates.",
+  "key_concepts": [{"concept": "specific formal characteristic", "explanation": "2-3 sentences: precise definition, how it appears in actual artworks"}],
+  "techniques": [{"name": "technique used by artists of this movement", "steps": "Technical description a practising artist can learn from. Specific materials and process."}],
+  "famous_examples": [{"work": "Title (Year) by Artist — Museum, City", "note": "2-3 sentence formal analysis"}],
+  "timeline": [{"year": "year or period", "event": "specific named work, exhibition, or turning point"}],
   "exercises": [
-    {"title": "Studio exercise", "description": "Multi-step studio project engaging seriously with this movement's aesthetic principles. Not pastiche — genuine investigation. Specific materials, process steps, evaluation criteria. For intermediate adult learners.", "time": "2-4 hours", "level": "Intermediate"},
-    {"title": "Advanced project", "description": "A sustained studio or research project requiring deeper engagement. Could span several sessions.", "time": "Multiple sessions", "level": "Advanced"},
-    {"title": "Contextual study", "description": "Museum visit (physical or virtual), primary source reading, or comparative analysis exercise.", "time": "2-3 hours", "level": "All levels"}
+    {"title": "title", "description": "Serious multi-step studio project engaging with this movement's aesthetic principles. Specific materials and process. For adult learners.", "time": "2-4 hours", "level": "Intermediate"},
+    {"title": "title", "description": "Advanced sustained project or contextual research exercise.", "time": "Multiple sessions", "level": "Advanced"}
   ],
-  "critical_perspectives": "2-3 paragraphs: how critics and historians have evaluated this movement over time, revisionist readings, ongoing debates, contested legacy, cultural politics where relevant",
-  "beginner_tip": "The single insight that most unlocks genuine understanding — not a platitude but a specific key to engaging with this movement critically",
-  "fun_fact": "One specific, surprising, and genuinely illuminating detail — a lesser-known fact that reveals something important",
+  "critical_perspectives": "2-3 paragraphs: how critics and historians have evaluated this movement, revisionist readings, contested legacy, cultural politics",
+  "beginner_tip": "The single insight that most unlocks genuine understanding",
+  "fun_fact": "One specific, surprising, illuminating detail",
   "related_topics": ["5-7 related movements, artists, or concepts"]
-}`
-
-  if (isArtist) return `You are a specialist art historian. Write a comprehensive, critically informed profile of: ${base}.
-
-${aud}
-
-Respond ONLY with valid JSON — no markdown fences, no preamble:
-{
-  "summary": "3-4 sentence authoritative overview: nationality, dates, movements, distinctive contribution, historical significance",
-  "pull_quote": "A single vivid, quotable sentence about this artist or their work — something that would look striking typeset large on a magazine page. Could be a quote from the artist themselves, or a critical insight.",
-  "timeline": [{"year": "year or period", "event": "key moment in their life or career — a specific work, exhibition, or turning point"}],
-  "overview": "5-6 substantial paragraphs: (1) biographical context and formative training; (2) early career and development; (3) mature period and major works with specific analysis; (4) position among contemporaries; (5) critical reception during their lifetime; (6) posthumous legacy",
-  "key_concepts": [{"concept": "defining formal, thematic, or conceptual characteristic", "explanation": "2-3 sentence analysis with reference to specific works"}],
-  "techniques": [{"name": "specific technique or formal method", "steps": "Detailed description a practising artist could study and attempt."}],
-  "famous_examples": [{"work": "Title (Year) — Collection, City", "note": "2-3 sentence formal analysis"}],
-  "exercises": [
-    {"title": "Formal study", "description": "Studio exercise engaging with a specific aspect of this artist's technique. Specific materials and process.", "time": "2-3 hours", "level": "Intermediate"},
-    {"title": "Sustained response", "description": "Deeper project: sustained study of their working methods or personal response to their thematic concerns.", "time": "Multiple sessions", "level": "Advanced"}
-  ],
-  "critical_perspectives": "2-3 paragraphs: changing critical valuations, contested interpretations, identity and cultural politics, controversies, market dynamics",
-  "beginner_tip": "The single most important insight for genuinely engaging with this artist's work",
-  "fun_fact": "One specific, surprising detail that reveals something about character, working method, or historical context",
-  "related_topics": ["5-7 related artists, movements, or topics"]
-}`
-
-  if (isTechnique || isFundament) return `You are a practising artist and experienced art educator. Write a rigorous, technically detailed article about: ${base}.
-
-${aud}
-
-Respond ONLY with valid JSON — no markdown fences, no preamble:
-{
-  "summary": "3-4 sentence precise definition and overview: what it is, why it matters, what it enables",
-  "overview": "4-5 substantial paragraphs: (1) precise technical definition with real depth; (2) perceptual and cognitive basis; (3) how master artists have understood and used it; (4) common errors and misconceptions; (5) how mastery unlocks other aspects of practice",
-  "key_concepts": [{"concept": "specific sub-concept, variation, or application", "explanation": "2-3 sentence precise technical explanation with reference to actual artworks or practice"}],
-  "techniques": [{"name": "specific method for developing skill", "steps": "Step-by-step technical guidance with specific materials, process, and self-evaluation criteria."}],
-  "famous_examples": [{"work": "Title (Year) by Artist", "note": "Analysis of how this element functions in this specific work"}],
-  "exercises": [
-    {"title": "Observational foundation", "description": "Structured perceptual exercise. Specific materials, steps, duration, and what to notice.", "time": "20-45 min", "level": "All levels"},
-    {"title": "Technical study", "description": "Sustained exercise building genuine skill. Specific challenge, process, and self-evaluation criteria.", "time": "1-3 hours", "level": "Intermediate"},
-    {"title": "Advanced application", "description": "Project-based exercise applying this understanding at a high level.", "time": "Multiple sessions", "level": "Advanced"}
-  ],
-  "critical_perspectives": "1-2 paragraphs: how understanding of this element has evolved in art education and theory, pedagogical debates",
-  "beginner_tip": "The single most important insight for making real progress with this",
-  "fun_fact": "One fascinating specific detail about how this works perceptually, historically, or in practice",
-  "related_topics": ["5-7 related elements, techniques, concepts"]
-}`
-
-  if (isMaterial) return `You are a materials specialist and practising artist. Write a comprehensive, technically authoritative article about ${base} as an art material.
-
-${aud}
-
-Respond ONLY with valid JSON — no markdown fences, no preamble:
-{
-  "summary": "3-4 sentence overview: what it is, primary uses, distinctive handling characteristics",
-  "overview": "4-5 paragraphs: (1) composition and how it works chemically/physically; (2) historical development with specific artists and periods; (3) handling characteristics; (4) relationship to other materials; (5) contemporary availability and professional use",
-  "key_concepts": [{"concept": "specific property or consideration", "explanation": "precise technical explanation relevant to an artist working with this material"}],
-  "techniques": [{"name": "specific technique using this material", "steps": "Step-by-step technical guidance — preparation, application, finishing. Actionable."}],
-  "famous_examples": [{"work": "Title (Year) by Artist", "note": "What this reveals about the material's possibilities"}],
-  "exercises": [
-    {"title": "Material investigation", "description": "Structured exploration of this material's range and behaviour. Specific tasks and what to discover.", "time": "2-3 hours", "level": "Beginner to Intermediate"},
-    {"title": "Technical mastery", "description": "Focused exercise developing a specific demanding skill.", "time": "3-5 hours", "level": "Intermediate to Advanced"}
-  ],
-  "critical_perspectives": "Archival quality, safety/toxicity, environmental considerations, cost, what conservators and professional artists advise",
-  "beginner_tip": "The most important thing to understand before working with this material for the first time",
-  "fun_fact": "One genuinely interesting historical or scientific fact",
-  "related_topics": ["5-6 related materials, techniques, or topics"]
-}`
-
-  if (isMuseum) return `You are an art historian and gallery educator. Write a comprehensive, critically informed guide to: ${base}.
-
-${aud}
-
-Respond ONLY with valid JSON — no markdown fences, no preamble:
-{
-  "summary": "3-4 sentence overview: location, founding, collection scope, what makes it distinctively significant",
-  "overview": "4-5 paragraphs: (1) founding history; (2) collection scope and key holdings; (3) role in shaping art historical discourse; (4) notable acquisitions or controversies; (5) the visiting experience",
-  "key_concepts": [{"concept": "key aspect of collection or philosophy", "explanation": "substantive explanation of why this matters"}],
-  "techniques": [{"name": "approach to studying this collection", "steps": "How to get maximum value from a visit, physical or virtual."}],
-  "famous_examples": [{"work": "Title (Year) by Artist — a defining work here", "note": "Why this work matters and what it reveals about the collection"}],
-  "exercises": [
-    {"title": "Structured collection study", "description": "Task-driven engagement with this collection — clear tasks and reflection questions.", "time": "Half to full day", "level": "All levels"},
-    {"title": "Comparative formal analysis", "description": "Select two works from different periods. Write a 600-900 word comparative formal and contextual analysis.", "time": "3-4 hours", "level": "Intermediate to Advanced"}
-  ],
-  "critical_perspectives": "2 paragraphs: decolonisation, provenance and repatriation, the canon it represents, access and inclusion, how the institution has evolved",
-  "beginner_tip": "The single most important piece of advice for engaging with this collection",
-  "fun_fact": "One specific and surprising detail about the institution",
-  "related_topics": ["5-6 related museums, collections, or topics"]
-}`
-
-  return `You are an expert visual arts educator and critic. Write a rigorous, intellectually serious article about ${base} for adult art learners.
-
-${aud}
-
-Respond ONLY with valid JSON — no markdown fences, no preamble:
-{
-  "summary": "3-4 sentence authoritative overview",
-  "pull_quote": "A single vivid, memorable sentence capturing the essence of this topic.",
-  "timeline": [],
-  "overview": "4-5 substantial paragraphs with real intellectual depth — historical context, critical significance, technical specifics, contemporary relevance",
-  "key_concepts": [{"concept": "specific concept", "explanation": "2-3 sentence precise explanation"}],
-  "techniques": [{"name": "technique", "steps": "detailed, actionable technical guidance"}],
-  "famous_examples": [{"work": "Specific Work (Year) by Artist", "note": "analytical note, not just description"}],
-  "exercises": [
-    {"title": "title", "description": "detailed multi-step exercise for adult learners", "time": "estimate", "level": "level"},
-    {"title": "title", "description": "more advanced or research-based exercise", "time": "estimate", "level": "level"}
-  ],
-  "critical_perspectives": "1-2 paragraphs on critical debates and contested aspects",
-  "beginner_tip": "The single most important insight — specific and actionable",
-  "fun_fact": "One specific and illuminating fact",
-  "related_topics": ["5-7 related topics"]
 }`
 }
