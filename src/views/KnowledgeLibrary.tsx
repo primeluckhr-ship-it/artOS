@@ -300,6 +300,38 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                   </div>
                 )}
 
+                {/* Pull quote */}
+                {selected.content.pull_quote && (
+                  <div style={{ margin:'0 0 36px', padding:'32px 0', borderTop:`1px solid ${catColor(selected.category)}30`, borderBottom:`1px solid ${catColor(selected.category)}30`, textAlign:'center', position:'relative' }}>
+                    <span style={{ position:'absolute', top:-18, left:'50%', transform:'translateX(-50%)', fontSize:64, lineHeight:1, color:catColor(selected.category), opacity:0.18, fontFamily:'Georgia,serif', userSelect:'none' }}>"</span>
+                    <p style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, fontStyle:'italic', fontWeight:600, color:'#fff', lineHeight:1.55, margin:0, maxWidth:620, marginLeft:'auto', marginRight:'auto', textShadow:`0 0 40px ${catColor(selected.category)}30` }}>
+                      {selected.content.pull_quote}
+                    </p>
+                  </div>
+                )}
+
+                {/* Timeline — for movements and artists */}
+                {selected.content.timeline?.length > 0 && (
+                  <div style={{ marginBottom:36 }}>
+                    <SectionTitle color={catColor(selected.category)}>Timeline</SectionTitle>
+                    <div style={{ position:'relative', paddingLeft:24 }}>
+                      {/* Vertical line */}
+                      <div style={{ position:'absolute', left:7, top:8, bottom:8, width:2, background:`linear-gradient(to bottom, ${catColor(selected.category)}, ${catColor(selected.category)}20)`, borderRadius:2 }}/>
+                      <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+                        {selected.content.timeline.map((t:any, i:number) => (
+                          <div key={i} style={{ display:'flex', gap:16, paddingBottom:20, position:'relative' }}>
+                            <div style={{ width:16, height:16, borderRadius:'50%', background:catColor(selected.category), border:'3px solid rgba(10,6,22,1)', flexShrink:0, marginTop:2, position:'absolute', left:-17, boxShadow:`0 0 8px ${catColor(selected.category)}60` }}/>
+                            <div style={{ paddingLeft:8 }}>
+                              <div style={{ fontSize:11, fontWeight:800, color:catColor(selected.category), letterSpacing:0.5, marginBottom:3 }}>{t.year}</div>
+                              <div style={{ fontSize:14, color:'rgba(255,255,255,0.7)', lineHeight:1.65 }}>{t.event}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Divider */}
                 <Divider color={catColor(selected.category)} />
 
@@ -333,20 +365,37 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                   </div>
                 )}
 
-                {/* Famous examples */}
+                {/* Famous examples — visual cards with artwork images */}
                 {selected.content.famous_examples?.length > 0 && (
                   <div style={{ marginBottom:36 }}>
                     <SectionTitle color="#FF9F1C">Notable Works & Examples</SectionTitle>
-                    <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-                      {selected.content.famous_examples.map((e:any, i:number) => (
-                        <div key={i} style={{ display:'flex', gap:16, padding:'16px 0', borderBottom:'1px solid rgba(255,255,255,0.06)', alignItems:'flex-start' }}>
-                          <div style={{ width:4, height:4, borderRadius:'50%', background:'#FF9F1C', marginTop:8, flexShrink:0 }}/>
-                          <div>
-                            <div style={{ fontSize:14, fontWeight:700, color:'rgba(255,159,28,0.9)', marginBottom:4, fontStyle:'italic' }}>{e.work}</div>
-                            <div style={{ fontSize:13, color:'rgba(255,255,255,0.55)', lineHeight:1.75 }}>{e.note}</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                      {selected.content.famous_examples.map((e:any, i:number) => {
+                        // Derive an image search term from the work title
+                        const workQuery = encodeURIComponent(e.work.split('(')[0].trim() + ' art painting')
+                        const imgSrc = `https://source.unsplash.com/480x300/?${workQuery}`
+                        return (
+                          <div key={i} style={{ borderRadius:14, overflow:'hidden', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,159,28,0.15)', position:'relative' }}>
+                            {/* Artwork image */}
+                            <div style={{ height:130, position:'relative', overflow:'hidden', background:`linear-gradient(135deg,rgba(255,159,28,0.15),rgba(255,107,53,0.1))` }}>
+                              <img
+                                src={imgSrc}
+                                alt={e.work}
+                                style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }}
+                                onError={(el) => { (el.target as HTMLImageElement).style.display='none' }}
+                              />
+                              <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(10,6,22,0.85) 0%,transparent 60%)' }}/>
+                              <div style={{ position:'absolute', bottom:8, left:10, right:10 }}>
+                                <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.9)', fontStyle:'italic', lineHeight:1.3 }}>{e.work}</div>
+                              </div>
+                            </div>
+                            {/* Analysis */}
+                            <div style={{ padding:'12px 14px' }}>
+                              <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', lineHeight:1.7 }}>{e.note}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -470,17 +519,27 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
 
 // ── Sub-components ──────────────────────────────────────────────
 function ArticleRow({ a, active, onSelect, color }: { a:Article; active:boolean; onSelect:(a:Article)=>void; color:string }) {
+  const showThumb = ['movements','artists','museums','styles'].includes(a.category)
+  const thumb = a.image_url || CAT_IMAGES[a.category]
   return (
     <button onClick={() => onSelect(a)} className="article-row" style={{
       width:'100%', background: active?`${color}10`:'transparent',
-      border:`1px solid ${active?color+'35':'transparent'}`, borderRadius:10, padding:'8px 10px',
-      cursor:'pointer', textAlign:'left', display:'flex', alignItems:'center', gap:8, transition:'background 0.1s',
+      border:`1px solid ${active?color+'35':'transparent'}`, borderRadius:10, padding:'7px 9px',
+      cursor:'pointer', textAlign:'left', display:'flex', alignItems:'center', gap:9, transition:'background 0.1s',
     }}>
-      {a.image_url && <div style={{ width:36, height:36, borderRadius:6, backgroundImage:`url(${a.image_url})`, backgroundSize:'cover', backgroundPosition:'center', flexShrink:0 }}/>}
-      {!a.image_url && <div style={{ width:4, height:32, borderRadius:2, background: active?color:'rgba(255,255,255,0.1)', flexShrink:0 }}/>}
+      {showThumb ? (
+        <div style={{ width:38, height:38, borderRadius:8, overflow:'hidden', flexShrink:0, background:`${color}18`, border:`1px solid ${color}20` }}>
+          <img src={thumb} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} onError={e => { (e.target as HTMLImageElement).style.display='none' }}/>
+        </div>
+      ) : (
+        <div style={{ width:4, height:32, borderRadius:2, background: active?color:'rgba(255,255,255,0.1)', flexShrink:0 }}/>
+      )}
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:12, fontWeight:600, color: active?'#fff':'rgba(255,255,255,0.7)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.title}</div>
-        {a.subcategory && <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)', marginTop:1 }}>{a.subcategory}</div>}
+        <div style={{ fontSize:12.5, fontWeight:600, color: active?'#fff':'rgba(255,255,255,0.75)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.title}</div>
+        {a.content
+          ? <div style={{ fontSize:10, color:'rgba(255,255,255,0.28)', marginTop:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{a.content.summary?.slice(0,50)}…</div>
+          : <div style={{ fontSize:10, color:`${color}70`, marginTop:1 }}>{a.subcategory || a.era || ''}</div>
+        }
       </div>
       {a.content && <div style={{ width:5, height:5, borderRadius:'50%', background:'#4ade80', flexShrink:0, opacity:0.7 }}/>}
     </button>
@@ -521,6 +580,8 @@ ${aud}
 Respond ONLY with valid JSON — no markdown fences, no preamble:
 {
   "summary": "3-4 sentence authoritative overview: period, geographic origin, defining characteristics, lasting significance",
+  "pull_quote": "A single vivid, quotable sentence that captures the essence or spirit of this movement — the kind of line that would look striking typeset large on a magazine page",
+  "timeline": [{"year": "specific year or date range", "event": "significant development, artwork, or moment in the movement — be specific, name works and artists"}],
   "overview": "5-6 substantial paragraphs: (1) historical/political/cultural forces; (2) core philosophical and aesthetic principles — what was radical; (3) internal development, key phases, factions; (4) relationship to preceding and concurrent movements; (5) decline, transformation, and influence on what followed. Reference specific named works, artists, dates throughout.",
   "key_concepts": [{"concept": "specific formal or conceptual characteristic", "explanation": "2-3 sentences: precise definition, how it appears in actual artworks, what makes it distinctive"}],
   "techniques": [{"name": "technique or formal method used by artists of this movement", "steps": "Technical description a practising artist could learn from. Include materials, process, and self-evaluation criteria."}],
@@ -543,6 +604,8 @@ ${aud}
 Respond ONLY with valid JSON — no markdown fences, no preamble:
 {
   "summary": "3-4 sentence authoritative overview: nationality, dates, movements, distinctive contribution, historical significance",
+  "pull_quote": "A single vivid, quotable sentence about this artist or their work — something that would look striking typeset large on a magazine page. Could be a quote from the artist themselves, or a critical insight.",
+  "timeline": [{"year": "year or period", "event": "key moment in their life or career — a specific work, exhibition, or turning point"}],
   "overview": "5-6 substantial paragraphs: (1) biographical context and formative training; (2) early career and development; (3) mature period and major works with specific analysis; (4) position among contemporaries; (5) critical reception during their lifetime; (6) posthumous legacy",
   "key_concepts": [{"concept": "defining formal, thematic, or conceptual characteristic", "explanation": "2-3 sentence analysis with reference to specific works"}],
   "techniques": [{"name": "specific technique or formal method", "steps": "Detailed description a practising artist could study and attempt."}],
@@ -628,6 +691,8 @@ ${aud}
 Respond ONLY with valid JSON — no markdown fences, no preamble:
 {
   "summary": "3-4 sentence authoritative overview",
+  "pull_quote": "A single vivid, memorable sentence capturing the essence of this topic.",
+  "timeline": [],
   "overview": "4-5 substantial paragraphs with real intellectual depth — historical context, critical significance, technical specifics, contemporary relevance",
   "key_concepts": [{"concept": "specific concept", "explanation": "2-3 sentence precise explanation"}],
   "techniques": [{"name": "technique", "steps": "detailed, actionable technical guidance"}],
