@@ -73,10 +73,14 @@ export default function StudentView({ profile, onNavigateCourses }: { profile: P
       const r = await fetch(`${SUPABASE_URL}/functions/v1/generate-mission`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ domain, difficulty, student_age: 14, school_id: profile.school_id }),
+        body: JSON.stringify({ domain, difficulty, student_age: 25, school_id: profile.school_id }),
       })
       const data = await r.json()
-      setMission({ ...data, domain, difficulty })
+      if (data.error) {
+        setMission({ _error: data.error, domain, difficulty })
+      } else {
+        setMission({ ...data, domain, difficulty })
+      }
       // Curriculum link: find nearest lesson in this domain + difficulty
       const { data: lessons } = await (await import('../lib/supabase')).supabase
         .from('lesson_library')
@@ -244,6 +248,13 @@ export default function StudentView({ profile, onNavigateCourses }: { profile: P
                 {mission.mission_title}
               </div>
             </div>
+            {mission._error ? (
+              <div style={{ padding:'20px', textAlign:'center' }}>
+                <div style={{ fontSize:18, marginBottom:8 }}>⚠️</div>
+                <div style={{ fontSize:13, color:'rgba(255,100,100,0.8)', lineHeight:1.6 }}>{mission._error}</div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:8 }}>Check that ANTHROPIC_API_KEY is set in Supabase → Settings → Edge Functions → Secrets</div>
+              </div>
+            ) : null}
             <button onClick={() => { setMission(null); setHints([]); setRevealed([]); setSuggestedLesson(null) }} style={{ position:'absolute', top:12, right:12, background:'rgba(0,0,0,0.5)', border:'1px solid rgba(255,255,255,0.15)', color:'rgba(255,255,255,0.6)', borderRadius:8, width:32, height:32, cursor:'pointer', fontSize:15, backdropFilter:'blur(4px)' }}>×</button>
           </div>
 
