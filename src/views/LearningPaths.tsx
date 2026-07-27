@@ -150,8 +150,11 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
             <h1 style={{ fontFamily:"'Fredoka One',sans-serif", fontSize:mobile?22:28, color:'#fff', margin:'0 0 5px' }}>Learning Paths</h1>
             <p style={{ color:'rgba(255,255,255,0.4)', fontSize:13, margin:0 }}>Guided studio programmes — adults learn by making every session</p>
             <div style={{ display:'flex', gap:20, marginTop:12, flexWrap:'wrap' }}>
-              {[['🎨 Painting Track', paths.filter(p=>p.slug.includes('painting')).length],
-                ['✏️ Drawing Track', paths.filter(p=>p.slug.includes('drawing')).length]].map(([label, count]) => (
+              {[['🎨 Painting', paths.filter(p=>p.slug.includes('painting')).length],
+                ['✏️ Drawing', paths.filter(p=>p.slug.includes('drawing')).length],
+                ['💧 Watercolour', paths.filter(p=>p.slug.includes('watercolour')).length],
+                ['🪨 Charcoal', paths.filter(p=>p.slug.includes('charcoal')).length]
+              ].filter(([,c])=>(c as number)>0).map(([label, count]) => (
                 <span key={label as string} style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.05)', borderRadius:20, padding:'3px 10px' }}>
                   {label} · {count} segment{(count as number)>1?'s':''}
                 </span>
@@ -159,8 +162,12 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
             </div>
           </div>
 
-          {[['🎨 Painting Track', paths.filter(p=>p.slug.includes('painting'))],
-            ['✏️ Drawing Track', paths.filter(p=>p.slug.includes('drawing'))]].map(([trackLabel, trackPaths]) => (
+          {[
+            ['🎨 Painting', paths.filter(p=>p.slug.includes('painting'))],
+            ['✏️ Drawing', paths.filter(p=>p.slug.includes('drawing'))],
+            ['💧 Watercolour', paths.filter(p=>p.slug.includes('watercolour'))],
+            ['🪨 Charcoal', paths.filter(p=>p.slug.includes('charcoal'))]
+          ].filter(([,tp])=>(tp as typeof paths).length>0).map(([trackLabel, trackPaths]) => (
             <div key={trackLabel as string}>
               <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.5, color:'rgba(255,255,255,0.2)', marginBottom:10, marginTop:4 }}>{trackLabel as string}</div>
               {(trackPaths as typeof paths).map(p => {
@@ -219,11 +226,15 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
               </div>
               {completedCount === selPath.total_sessions && (
                 <div style={{ marginTop:8,fontSize:12,color:'#4ade80',fontWeight:700 }}>
-                  {selPath.slug?.includes('drawing') && selPath.level==='foundation' ? "🎉 Drawing Foundation complete! You're ready for Drawing Intermediate." :
-                   selPath.slug?.includes('drawing') && selPath.level==='intermediate' ? "🎉 Drawing Intermediate complete! You have a full drawing practice." :
-                   selPath.level==='foundation' ? "🎉 Painting Foundation complete! You're ready for Intermediate — speak to your teacher." :
-                   selPath.level==='intermediate' ? "🎉 Intermediate complete! You've earned a full body of paintings." :
-                   selPath.level==='advanced' ? "🎉 Advanced complete. You are a working artist." :
+                  {selPath.slug?.includes('watercolour') && selPath.level==='foundation' ? "🎉 Watercolour Foundation complete! You're ready for Watercolour Intermediate." :
+                   selPath.slug?.includes('watercolour') && selPath.level==='intermediate' ? "🎉 Watercolour Intermediate complete! You have a full watercolour practice." :
+                   selPath.slug?.includes('charcoal') ? "🎉 Charcoal course complete! A new medium mastered." :
+                   selPath.slug?.includes('drawing') && selPath.level==='foundation' ? "🎉 Drawing Foundation complete! You're ready for Drawing Intermediate." :
+                   selPath.slug?.includes('drawing') && selPath.level==='intermediate' ? "🎉 Drawing Intermediate complete! You're ready for Drawing Advanced." :
+                   selPath.slug?.includes('drawing') && selPath.level==='advanced' ? "🎉 Drawing Advanced complete! Three segments, a full drawing practice." :
+                   selPath.level==='foundation' ? "🎉 Painting Foundation complete! You're ready for Intermediate." :
+                   selPath.level==='intermediate' ? "🎉 Intermediate complete! You're ready for Advanced Painting." :
+                   selPath.level==='advanced' ? "🎉 Advanced complete. You are a working painter." :
                    "🎉 Segment complete!"}
                 </div>
               )}
