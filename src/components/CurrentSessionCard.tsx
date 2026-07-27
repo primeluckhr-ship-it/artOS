@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../App'
 
-interface Session { id: string; session_number: number; title: string; outcome: string; mini_outcome: string }
+interface Session { id: string; session_number: number; title: string; outcome: string; mini_outcome: string; image_url?: string }
 interface Path { id: string; title: string; subtitle: string; level: string; total_sessions: number }
 
 export default function CurrentSessionCard({ profile, onNavigateCourses }: { profile: Profile; onNavigateCourses: () => void }) {
@@ -36,7 +36,7 @@ export default function CurrentSessionCard({ profile, onNavigateCourses }: { pro
       const [{ data: pathData }, { data: progressData }, { data: sessionsData }] = await Promise.all([
         supabase.from('learning_paths').select('id,title,subtitle,level,total_sessions').eq('id', assignment.path_id).single(),
         supabase.from('student_path_progress').select('session_id,completed').eq('student_id', profile.id).eq('path_id', assignment.path_id).eq('completed', true),
-        supabase.from('path_sessions').select('id,session_number,title,outcome,mini_outcome').eq('path_id', assignment.path_id).order('session_number'),
+        supabase.from('path_sessions').select('id,session_number,title,outcome,mini_outcome,image_url').eq('path_id', assignment.path_id).order('session_number'),
       ])
 
       if (!pathData || !sessionsData) { setLoading(false); return }
@@ -83,6 +83,16 @@ export default function CurrentSessionCard({ profile, onNavigateCourses }: { pro
           </div>
         ) : (
           <>
+            {/* Session artwork image */}
+            {session.image_url && (
+              <div style={{ position:'relative', height:110, borderRadius:10, overflow:'hidden', marginBottom:12 }}>
+                <img src={session.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top' }} />
+                <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.85) 0%, rgba(8,6,16,0.1) 60%, transparent 100%)' }} />
+                <div style={{ position:'absolute', bottom:8, left:10, right:10 }}>
+                  <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:1.2, color:'rgba(255,159,28,0.7)' }}>Reference Artwork</div>
+                </div>
+              </div>
+            )}
             <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'rgba(255,255,255,0.3)', marginBottom:5 }}>
               Your current session
             </div>

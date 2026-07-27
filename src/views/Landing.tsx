@@ -47,19 +47,22 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
     if (tPass.length < 8) { setError('Password must be at least 8 characters'); return }
     setLoading(true); setError(null)
 
-    // 1. Create school — generate a unique join code
-    const base = schoolName.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || 'SCH'
-    const code = base + Math.floor(1000 + Math.random() * 9000)
-    const { data: school, error: schoolErr } = await supabase
-      .from('schools')
-      .insert({ name: schoolName, join_code: code })
-      .select('id, name, join_code')
-      .single()
-    if (schoolErr || !school) {
-      const msg = schoolErr?.message || 'Could not create school'
-      setError(msg.includes('join_code') ? 'Join code conflict — please try again' : msg)
+    // 1. Create school via server-side function (bypasses RLS on anon session)
+    const schRes = await fetch(
+      `https://hpyznfxnltreviijyhct.supabase.co/functions/v1/create-school`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhweXpuZnhubHRyZXZpaWp5aGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3OTU2MzAsImV4cCI6MjA5ODM3MTYzMH0.IcAVafpZzPFxi1hK5exfIljt2Y-sd1Xz2LurlcimlNw' },
+        body: JSON.stringify({ name: schoolName }),
+      }
+    )
+    const schJson = await schRes.json()
+    if (!schRes.ok || !schJson.id) {
+      setError(schJson.error || 'Could not create school')
       setLoading(false); return
     }
+    const school = schJson
 
     // 2. Create auth user — pass all profile data as metadata so the
     //    DB trigger can create the profile even if email confirmation
@@ -90,7 +93,7 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
     }
 
     // 4. No session means email confirmation is required
-    setSuccess(`Account created! Your join code is ${code}. Check your email to confirm your account, then sign in.`)
+    setSuccess(`Account created! Your join code is ${school.join_code}. Check your email to confirm your account, then sign in.`)
     setLoading(false)
   }
 

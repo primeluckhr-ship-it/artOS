@@ -18,13 +18,13 @@ const LVL: Record<string, { color: string; bg: string; label: string; order: num
 }
 
 const DOM: Record<string, { label: string; color: string; fallback: string }> = {
-  elements_of_art:      { label: 'Elements of Art',      color: '#1ECBE1', fallback: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=700&q=80' },
-  principles_of_design: { label: 'Principles of Design', color: '#4ade80', fallback: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=700&q=80' },
-  drawing:              { label: 'Drawing',               color: '#f9a8d4', fallback: 'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=700&q=80' },
-  painting:             { label: 'Painting',              color: '#FF6B35', fallback: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=700&q=80' },
-  colour_theory:        { label: 'Colour Theory',         color: '#FFE135', fallback: 'https://images.unsplash.com/photo-1525909002-1b05e0c869d8?w=700&q=80' },
-  mixed_media:          { label: 'Mixed Media',           color: '#a78bfa', fallback: 'https://images.unsplash.com/photo-1582034986517-30d163aa1da9?w=700&q=80' },
-  art_history:          { label: 'Art History',           color: '#fb923c', fallback: 'https://images.unsplash.com/photo-1580757468214-c73f7062a5cb?w=700&q=80' },
+  elements_of_art:      { label: 'Elements of Art',      color: '#1ECBE1', fallback: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Twittering_Machine.jpg/800px-Twittering_Machine.jpg' },
+  principles_of_design: { label: 'Principles of Design', color: '#4ade80', fallback: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Las_Meninas_01.jpg/883px-Las_Meninas_01.jpg' },
+  drawing:              { label: 'Drawing',               color: '#f9a8d4', fallback: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Qi_Baishi_shrimps.jpg/800px-Qi_Baishi_shrimps.jpg' },
+  painting:             { label: 'Painting',              color: '#FF6B35', fallback: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg' },
+  colour_theory:        { label: 'Colour Theory',         color: '#FFE135', fallback: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Rothko_No_14.jpg/800px-Rothko_No_14.jpg' },
+  mixed_media:          { label: 'Mixed Media',           color: '#a78bfa', fallback: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Bright_Continent%2C_El_Anatsui%2C_2010.jpg/1280px-Bright_Continent%2C_El_Anatsui%2C_2010.jpg' },
+  art_history:          { label: 'Art History',           color: '#fb923c', fallback: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg/1280px-%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg' },
 }
 
 const PROXY = 'https://hpyznfxnltreviijyhct.supabase.co/functions/v1/ai-proxy'

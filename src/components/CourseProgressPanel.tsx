@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase'
 import type { Profile } from '../App'
 
 interface Path { id: string; slug: string; title: string; subtitle: string; level: string; total_sessions: number; price_kes: number }
-interface Session { id: string; session_number: number; title: string; outcome: string; mini_outcome: string; duration_mins: number; demo_duration_mins: number; instructor_notes: string; activities: string[] }
+interface Session { id: string; session_number: number; title: string; outcome: string; mini_outcome: string; duration_mins: number; demo_duration_mins: number; instructor_notes: string; activities: string[]; image_url?: string }
 interface ClassRow { id: string; name: string }
 interface StudentProgress { student_id: string; name: string; completed: number; last_at: string | null; current_session: number }
 interface Assignment { class_id: string; path_id: string; current_session_number: number }
@@ -234,6 +234,18 @@ export default function CourseProgressPanel({ profile }: { profile: Profile }) {
             <button onClick={() => setFocusSess(null)} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.3)', cursor:'pointer', fontSize:18, padding:0 }}>×</button>
           </div>
 
+          {/* Reference Artwork */}
+          {focusSess.image_url && (
+            <div style={{ position:'relative', height:120, overflow:'hidden' }}>
+              <img src={focusSess.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top' }} />
+              <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, rgba(8,6,16,0.1) 60%, transparent 100%)' }} />
+              <div style={{ position:'absolute', bottom:8, left:12 }}>
+                <div style={{ fontSize:9, fontWeight:800, textTransform:'uppercase', letterSpacing:1.2, color:'rgba(255,159,28,0.7)' }}>Reference Artwork</div>
+                <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)' }}>Study before teaching this session</div>
+              </div>
+            </div>
+          )}
+
           {/* Outcome */}
           <div style={{ padding:'12px 16px', borderBottom:'1px solid rgba(255,255,255,0.05)', background:'rgba(255,159,28,0.05)' }}>
             <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, color:'rgba(255,159,28,0.6)', marginBottom:5 }}>Outcome</div>
@@ -274,11 +286,19 @@ export default function CourseProgressPanel({ profile }: { profile: Profile }) {
             <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
               {sessions.map(s => (
                 <button key={s.id} onClick={() => setFocusSess(s)}
-                  style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:9, padding:'9px 12px', cursor:'pointer', textAlign:'left', display:'flex', gap:10, alignItems:'center', transition:'all 0.1s' }}
+                  style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:9, padding:0, cursor:'pointer', textAlign:'left', display:'flex', gap:0, alignItems:'center', transition:'all 0.1s', overflow:'hidden' }}
                   onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.07)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.14)' }}
                   onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.07)' }}>
-                  <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,159,28,0.7)', minWidth:20 }}>S{s.session_number}</span>
-                  <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)' }}>{s.title}</span>
+                  {/* Artwork thumbnail */}
+                  {s.image_url && (
+                    <div style={{ width:44, height:44, flexShrink:0, overflow:'hidden', position:'relative' }}>
+                      <img src={s.image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', opacity:0.8 }} />
+                    </div>
+                  )}
+                  <div style={{ padding:'8px 10px', flex:1 }}>
+                    <span style={{ fontSize:9, fontWeight:800, color:'rgba(255,159,28,0.7)', display:'block', marginBottom:2 }}>S{s.session_number}</span>
+                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.6)', lineHeight:1.3, display:'block' }}>{s.title}</span>
+                  </div>
                 </button>
               ))}
             </div>
