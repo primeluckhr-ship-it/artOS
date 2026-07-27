@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import CourseProgressPanel from '../components/CourseProgressPanel'
+import ClassSetupPanel from '../components/ClassSetupPanel'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../App'
 
@@ -35,7 +36,7 @@ export default function TeacherView({ profile }: { profile: Profile }) {
   const [stats, setStats]       = useState<Stats>({ students:0, missions:0, total_xp:0, top_student:'—', top_xp:0 })
   const [activity, setActivity] = useState<RecentActivity[]>([])
   const [materials, setMaterials] = useState<SchoolMaterial[]>([])
-  const [tab, setTab]           = useState<'generate'|'materials'|'activity'|'courses'>('generate')
+  const [tab, setTab]           = useState<'generate'|'materials'|'activity'|'courses'|'class'>('generate')
 
   useEffect(() => { loadDashboard() }, [profile])
 
@@ -155,7 +156,7 @@ export default function TeacherView({ profile }: { profile: Profile }) {
 
       {/* Tab bar */}
       <div style={{ display:'flex', gap:4, marginBottom:24, background:'rgba(255,255,255,0.04)', borderRadius:14, padding:4 }}>
-        {([['generate','✦ Mission Generator'],['materials','🎨 Class Materials'],['activity','⚡ Recent Activity'],['courses','📚 Courses']] as [typeof tab, string][]).map(([key,label]) => (
+        {([['generate','✦ Mission Generator'],['materials','🎨 Class Materials'],['activity','⚡ Recent Activity'],['courses','📚 Courses'],['class','👥 Class Setup']] as [typeof tab, string][]).map(([key,label]) => (
           <button key={key} onClick={() => setTab(key)} style={{
             flex:1, padding:'10px 0', background: tab===key ? 'rgba(255,255,255,0.1)' : 'none',
             border:`1px solid ${tab===key?'rgba(255,255,255,0.15)':'transparent'}`,
@@ -379,6 +380,13 @@ export default function TeacherView({ profile }: { profile: Profile }) {
           )}
         </div>
       )}
+      {/* ── CLASS SETUP ──────────────────────────────────────────── */}
+      {tab === 'class' && (
+        <div style={{ animation:'fadeUp 0.4s ease' }}>
+          <ClassSetupPanel profile={profile} />
+        </div>
+      )}
+
       {/* ── COURSE PROGRESS ──────────────────────────────────────── */}
       {tab === 'courses' && (
         <div style={{ animation:'fadeUp 0.4s ease' }}>
