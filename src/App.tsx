@@ -17,11 +17,12 @@ import {
 
 import OnboardingTour from './components/OnboardingTour'
 import KnowledgeLibrary from './views/KnowledgeLibrary'
+import LearningPaths from './views/LearningPaths'
 import ParentReport from './views/ParentReport'
 export interface Profile {
   id: string; school_id: string; role: string; name: string; age_band: string | null
 }
-type View = 'class' | 'lessons' | 'teacher' | 'student' | 'portfolio' | 'admin' | 'clans' | 'report' | 'knowledge'
+type View = 'class' | 'lessons' | 'teacher' | 'student' | 'portfolio' | 'admin' | 'clans' | 'report' | 'knowledge' | 'paths'
 
 function ClansIcon({ size = 22, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
@@ -71,6 +72,7 @@ export default function App() {
     { key: 'lessons',   Icon: LessonsIcon,   label: 'Lessons',   color: '#FF6B35', show: true },
     { key: 'teacher',   Icon: CreateIcon,    label: 'Create',    color: '#FF9F1C', show: isTeacher },
     { key: 'student',   Icon: MissionIcon,   label: 'Mission',   color: '#1ECBE1', show: true },
+    { key: 'paths' as View,     Icon: LessonsIcon, label: 'Courses',  color: '#4ade80', show: true },
     { key: 'knowledge' as View, Icon: LessonsIcon, label: 'Library', color: '#FF9F1C', show: true },
     { key: 'clans',     Icon: ClansIcon,     label: 'Clans',     color: '#f472b6', show: true },
     { key: 'portfolio', Icon: PortfolioIcon, label: 'Portfolio', color: '#a78bfa', show: true },
@@ -103,6 +105,7 @@ export default function App() {
         {view === 'admin'     && isAdmin    && <AdminPanel profile={profile} />}
         {view === 'report'   && profile   && <ParentReport profile={profile} />}
         {view === 'knowledge' && profile   && <KnowledgeLibrary profile={profile} />}
+        {view === 'paths'    && profile   && <LearningPaths    profile={profile} />}
       </main>
     </div>
   )
