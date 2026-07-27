@@ -25,14 +25,14 @@ interface Article {
 
 // ── Movement hero images (curated category backgrounds) ──────────
 const CAT_IMAGES: Record<string, string> = {
-  movements:    'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
+  movements:    'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg/1280px-%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg',
   artists:      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/800px-1665_Girl_with_a_Pearl_Earring.jpg',
-  fundamentals: 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=1400&q=85',
-  drawing:      'https://images.unsplash.com/photo-1512486130939-2c4f79935e4f?w=1400&q=85',
-  painting:     'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=1400&q=85',
-  materials:    'https://images.unsplash.com/photo-1560421683-6856ea585c78?w=1400&q=85',
-  styles:       'https://images.unsplash.com/photo-1547826039-a0c20c946bd0?w=1400&q=85',
-  museums:      'https://images.unsplash.com/photo-1565099824688-45e04a8b3827?w=1400&q=85',
+  fundamentals: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Twittering_Machine.jpg/800px-Twittering_Machine.jpg',
+  drawing:      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Qi_Baishi_shrimps.jpg/800px-Qi_Baishi_shrimps.jpg',
+  painting:     'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/The_Night_Watch_-_HD.jpg/1280px-The_Night_Watch_-_HD.jpg',
+  materials:    'https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Vincent_van_Gogh_-_Sunflowers_-_VGM_F458.jpg/1024px-Vincent_van_Gogh_-_Sunflowers_-_VGM_F458.jpg',
+  styles:       'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
+  museums:      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Pierre-Auguste_Renoir_-_Luncheon_of_the_Boating_Party_-_Google_Art_Project.jpg/1280px-Pierre-Auguste_Renoir_-_Luncheon_of_the_Boating_Party_-_Google_Art_Project.jpg',
 }
 
 const ERA_ORDER = ['Ancient','Medieval','Renaissance','Baroque & Rococo','Neoclassicism','Romanticism','19th Century','Early Modern','Modern','Contemporary']
