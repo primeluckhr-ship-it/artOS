@@ -99,7 +99,7 @@ export default function App() {
         {view === 'class'     && isTeacher  && <ClassDashboard profile={profile} />}
         {view === 'lessons'                 && <LessonLibrary profile={profile} />}
         {view === 'teacher'   && isTeacher  && <TeacherView profile={profile} />}
-        {view === 'student'                 && <StudentView profile={profile} />}
+        {view === 'student'                 && <StudentView profile={profile} onNavigateCourses={() => setView('paths')} />}
         {view === 'clans'                   && <ClansView profile={profile} />}
         {view === 'portfolio'               && <PortfolioView profile={profile} />}
         {view === 'admin'     && isAdmin    && <AdminPanel profile={profile} />}
@@ -164,11 +164,13 @@ function NavBar({ profile, view, setView, navItems }: {
             <button onClick={() => supabase.auth.signOut()} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: 11 }}>Leave</button>
           </div>
         </nav>
-        {/* Mobile: fixed bottom tab bar */}
-        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,6,26,0.97)', borderTop: '1px solid rgba(255,255,255,0.1)', zIndex: 100, display: 'flex', paddingBottom: 'env(safe-area-inset-bottom,0px)', backdropFilter: 'blur(16px)' }}>
-          {navItems.slice(0, 5).map(({ key, Icon, label, color }) => (
-            <NavBtn key={key} icon={Icon} label={label} active={view === key} color={color} onClick={() => setView(key)} mobile />
-          ))}
+        {/* Mobile: fixed bottom scrollable tab bar */}
+        <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,6,26,0.97)', borderTop: '1px solid rgba(255,255,255,0.1)', zIndex: 100, paddingBottom: 'env(safe-area-inset-bottom,0px)', backdropFilter: 'blur(16px)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+          <div style={{ display: 'flex', minWidth: 'max-content' }}>
+            {navItems.map(({ key, Icon, label, color }) => (
+              <NavBtn key={key} icon={Icon} label={label} active={view === key} color={color} onClick={() => setView(key)} mobile />
+            ))}
+          </div>
         </nav>
       </>
     )

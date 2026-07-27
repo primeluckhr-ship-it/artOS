@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../App'
+import CurrentSessionCard from '../components/CurrentSessionCard'
 
 const SUPABASE_URL = 'https://hpyznfxnltreviijyhct.supabase.co'
 const XP_PER_LEVEL = 200
@@ -40,7 +41,7 @@ const DIFFICULTIES = [
   { key: 'expert',       label: 'Expert',       color: '#c084fc', xp: 200 },
 ]
 
-export default function StudentView({ profile }: { profile: Profile }) {
+export default function StudentView({ profile, onNavigateCourses }: { profile: Profile; onNavigateCourses?: () => void }) {
   const [domain, setDomain]       = useState('drawing')
   const [difficulty, setDiff]     = useState('beginner')
   const [mission, setMission]     = useState<any>(null)
@@ -167,6 +168,9 @@ export default function StudentView({ profile }: { profile: Profile }) {
           <span style={{ fontSize:10, color:'rgba(255,255,255,0.25)' }}>{level < 50 ? `${XP_PER_LEVEL - (totalXp % XP_PER_LEVEL)} XP to Level ${level+1}` : 'Max level!'}</span>
         </div>
       </div>
+
+      {/* Active course card */}
+      <CurrentSessionCard profile={profile} onNavigateCourses={onNavigateCourses || (() => {})} />
 
       {/* Mission builder */}
       {!mission && !completed && (
