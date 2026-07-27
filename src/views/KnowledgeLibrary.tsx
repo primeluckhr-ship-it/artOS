@@ -344,14 +344,34 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                     )}
                     {/* Overview */}
                     {artContent.overview && <div style={{ fontSize:15, color:'rgba(255,255,255,0.75)', lineHeight:2, marginBottom:36, whiteSpace:'pre-line' }}>{artContent.overview}</div>}
+                    {/* Inline artwork images */}
+                    {artContent.images?.length > 0 && (
+                      <div style={{ marginBottom:36 }}>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))', gap:14 }}>
+                          {artContent.images.map((img:any, i:number) => (
+                            <figure key={i} style={{ margin:0 }}>
+                              <div style={{ borderRadius:12, overflow:'hidden', aspectRatio:'4/3', background:'rgba(255,255,255,0.04)' }}>
+                                <img src={img.url} alt={img.caption||img.label||''} loading="lazy"
+                                  style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                              </div>
+                              {(img.caption||img.label) && (
+                                <figcaption style={{ fontSize:11, color:'rgba(255,255,255,0.38)', marginTop:7, lineHeight:1.6, fontStyle:'italic', paddingLeft:2 }}>
+                                  {img.caption||img.label}
+                                </figcaption>
+                              )}
+                            </figure>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {/* Key concepts */}
                     {artContent.key_concepts?.length > 0 && (
                       <div style={{ marginBottom:36 }}>
                         <H2>Key Concepts</H2>
                         {artContent.key_concepts.map((k:any, i:number) => (
                           <div key={i} style={{ borderLeft:'2px solid rgba(255,159,28,0.4)', paddingLeft:20, paddingBottom:18, marginBottom:0 }}>
-                            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:16, color:'#fff', marginBottom:6 }}>{k.concept}</div>
-                            <div style={{ fontSize:13, color:'rgba(255,255,255,0.58)', lineHeight:1.8 }}>{k.explanation}</div>
+                            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:16, color:'#fff', marginBottom:6 }}>{k.concept||k.term}</div>
+                            <div style={{ fontSize:13, color:'rgba(255,255,255,0.58)', lineHeight:1.8 }}>{k.explanation||k.definition}</div>
                           </div>
                         ))}
                       </div>
@@ -364,7 +384,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                           {artContent.techniques.map((t:any, i:number) => (
                             <div key={i} style={{ background:'rgba(74,222,128,0.04)', border:'1px solid rgba(74,222,128,0.12)', borderRadius:12, padding:'16px 18px' }}>
                               <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:15, color:'#4ade80', marginBottom:6 }}>{t.name}</div>
-                              <div style={{ fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.8 }}>{t.steps}</div>
+                              <div style={{ fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.8 }}>{t.steps||t.description}</div>
                             </div>
                           ))}
                         </div>
