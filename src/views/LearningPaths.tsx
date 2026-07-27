@@ -155,7 +155,9 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
                 ['✏️ Drawing', paths.filter(p=>p.slug.startsWith('drawing')||p.slug==='life-drawing').length],
                 ['💧 Watercolour', paths.filter(p=>p.slug.startsWith('watercolour')).length],
                 ['🪨 Charcoal', paths.filter(p=>p.slug==='charcoal-tonal-drawing').length],
-                ['🌈 Pastels', paths.filter(p=>p.slug==='pastel-drawing').length]
+                ['🌈 Pastel', paths.filter(p=>p.slug==='pastel-drawing').length],
+                ['🖼️ Portrait', paths.filter(p=>p.slug==='portrait-intensive').length],
+                ['🖨️ Print & Mix', paths.filter(p=>p.slug==='printmaking-mixed-media').length]
               ].filter(([,c])=>(c as number)>0).map(([label, count]) => (
                 <span key={label as string} style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.05)', borderRadius:20, padding:'3px 10px' }}>
                   {label} · {count} segment{(count as number)>1?'s':''}
@@ -170,7 +172,9 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
             ['✏️ Drawing', paths.filter(p=>p.slug.startsWith('drawing')||p.slug==='life-drawing')],
             ['💧 Watercolour', paths.filter(p=>p.slug.startsWith('watercolour'))],
             ['🪨 Charcoal', paths.filter(p=>p.slug==='charcoal-tonal-drawing')],
-            ['🌈 Pastels', paths.filter(p=>p.slug==='pastel-drawing')]
+            ['🌈 Pastel', paths.filter(p=>p.slug==='pastel-drawing')],
+            ['🖼️ Portrait', paths.filter(p=>p.slug==='portrait-intensive')],
+            ['🖨️ Printmaking & Mixed Media', paths.filter(p=>p.slug==='printmaking-mixed-media')]
           ].filter(([,tp])=>(tp as typeof paths).length>0).map(([trackLabel, trackPaths]) => (
             <div key={trackLabel as string}>
               <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.5, color:'rgba(255,255,255,0.2)', marginBottom:10, marginTop:4 }}>{trackLabel as string}</div>
@@ -235,8 +239,10 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
                    selPath.slug?.includes('oil-painting') && selPath.level==='foundation' ? "🎉 Oil Painting Foundation complete! Ready for Oil Intermediate." :
                    selPath.slug?.includes('oil-painting') && selPath.level==='intermediate' ? "🎉 Oil Painting Intermediate complete! You are a traditional oil painter." :
                    selPath.slug==='life-drawing' ? "🎉 Life Drawing complete! The figure is in your hands." :
-                   selPath.slug==='pastel-drawing' ? "🎉 Pastel Foundation complete! Pure pigment mastered." :
-                   selPath.slug?.includes('charcoal') ? "🎉 Charcoal course complete! A new medium mastered." :
+                   selPath.slug==='pastel-drawing' ? "🎉 Pastel course complete! Pure pigment, fully mastered." :
+                   selPath.slug==='portrait-intensive' ? "🎉 Portrait Intensive complete! You have painted the face in five media." :
+                   selPath.slug==='printmaking-mixed-media' ? "🎉 Printmaking & Mixed Media complete! You are a maker of many processes." :
+                   selPath.slug?.includes('charcoal') ? "🎉 Charcoal complete! A new medium, fully understood." :
                    selPath.slug?.includes('drawing') && selPath.level==='foundation' ? "🎉 Drawing Foundation complete! You're ready for Drawing Intermediate." :
                    selPath.slug?.includes('drawing') && selPath.level==='intermediate' ? "🎉 Drawing Intermediate complete! You're ready for Drawing Advanced." :
                    selPath.slug?.includes('drawing') && selPath.level==='advanced' ? "🎉 Drawing Advanced complete! Three segments, a full drawing practice." :
