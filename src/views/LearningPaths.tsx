@@ -148,10 +148,22 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
         <div style={{ animation:'fadeUp 0.4s ease' }}>
           <div style={{ marginBottom:24 }}>
             <h1 style={{ fontFamily:"'Fredoka One',sans-serif", fontSize:mobile?22:28, color:'#fff', margin:'0 0 5px' }}>Learning Paths</h1>
-            <p style={{ color:'rgba(255,255,255,0.4)', fontSize:13, margin:0 }}>Guided studio programmes — adults learn by painting every session</p>
+            <p style={{ color:'rgba(255,255,255,0.4)', fontSize:13, margin:0 }}>Guided studio programmes — adults learn by making every session</p>
+            <div style={{ display:'flex', gap:20, marginTop:12, flexWrap:'wrap' }}>
+              {[['🎨 Painting Track', paths.filter(p=>p.slug.includes('painting')).length],
+                ['✏️ Drawing Track', paths.filter(p=>p.slug.includes('drawing')).length]].map(([label, count]) => (
+                <span key={label as string} style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.05)', borderRadius:20, padding:'3px 10px' }}>
+                  {label} · {count} segment{(count as number)>1?'s':''}
+                </span>
+              ))}
+            </div>
           </div>
 
-          {paths.map(p => {
+          {[['🎨 Painting Track', paths.filter(p=>p.slug.includes('painting'))],
+            ['✏️ Drawing Track', paths.filter(p=>p.slug.includes('drawing'))]].map(([trackLabel, trackPaths]) => (
+            <div key={trackLabel as string}>
+              <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.5, color:'rgba(255,255,255,0.2)', marginBottom:10, marginTop:4 }}>{trackLabel as string}</div>
+              {(trackPaths as typeof paths).map(p => {
             const pathProgress = progress.filter(pr => sessions.some(s => s.id === pr.session_id)).filter(pr => pr.completed).length
             return (
             <div key={p.id} style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:18, overflow:'hidden', marginBottom:14, cursor:'pointer', transition:'border-color 0.15s' }}
@@ -186,6 +198,8 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
               </div>
             </div>
           )})}
+            </div>
+          ))}
         </div>
       )}
 
@@ -205,7 +219,12 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
               </div>
               {completedCount === selPath.total_sessions && (
                 <div style={{ marginTop:8,fontSize:12,color:'#4ade80',fontWeight:700 }}>
-                  {selPath.level==='foundation' ? "🎉 Foundation complete! You're ready for Intermediate." : "🎉 You've completed the full course. 16 paintings."}
+                  {selPath.slug?.includes('drawing') && selPath.level==='foundation' ? "🎉 Drawing Foundation complete! You're ready for Drawing Intermediate." :
+                   selPath.slug?.includes('drawing') && selPath.level==='intermediate' ? "🎉 Drawing Intermediate complete! You have a full drawing practice." :
+                   selPath.level==='foundation' ? "🎉 Painting Foundation complete! You're ready for Intermediate — speak to your teacher." :
+                   selPath.level==='intermediate' ? "🎉 Intermediate complete! You've earned a full body of paintings." :
+                   selPath.level==='advanced' ? "🎉 Advanced complete. You are a working artist." :
+                   "🎉 Segment complete!"}
                 </div>
               )}
             </div>
