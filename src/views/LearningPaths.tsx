@@ -193,7 +193,13 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
                 <div style={{ height:'100%', width:`${(completedCount/selPath.total_sessions)*100}%`, background:'linear-gradient(90deg,#FF9F1C,#FFE135)', borderRadius:3, transition:'width 0.6s ease' }}/>
               </div>
               {completedCount === selPath.total_sessions && (
-                <div style={{ marginTop:10, fontSize:13, color:'#4ade80', fontWeight:700 }}>🎉 You've completed Foundation! Ask your teacher about Intermediate.</div>
+                <div style={{ marginTop:10, fontSize:13, color:'#4ade80', fontWeight:700 }}>
+                  {selPath.level === 'foundation'
+                    ? "🎉 Foundation complete! You're ready for Intermediate — speak to your teacher."
+                    : selPath.level === 'intermediate'
+                    ? "🎉 Intermediate complete! You've earned a full body of 16 paintings."
+                    : "🎉 Segment complete!"}
+                </div>
               )}
             </div>
           )}
