@@ -150,10 +150,12 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
             <h1 style={{ fontFamily:"'Fredoka One',sans-serif", fontSize:mobile?22:28, color:'#fff', margin:'0 0 5px' }}>Learning Paths</h1>
             <p style={{ color:'rgba(255,255,255,0.4)', fontSize:13, margin:0 }}>Guided studio programmes — adults learn by making every session</p>
             <div style={{ display:'flex', gap:20, marginTop:12, flexWrap:'wrap' }}>
-              {[['🎨 Painting', paths.filter(p=>p.slug.includes('painting')).length],
-                ['✏️ Drawing', paths.filter(p=>p.slug.includes('drawing')).length],
-                ['💧 Watercolour', paths.filter(p=>p.slug.includes('watercolour')).length],
-                ['🪨 Charcoal', paths.filter(p=>p.slug.includes('charcoal')).length]
+              {[['🎨 Acrylic', paths.filter(p=>p.slug.startsWith('adult-painting')).length],
+                ['🛢️ Oil', paths.filter(p=>p.slug.startsWith('oil-painting')).length],
+                ['✏️ Drawing', paths.filter(p=>p.slug.startsWith('drawing')||p.slug==='life-drawing').length],
+                ['💧 Watercolour', paths.filter(p=>p.slug.startsWith('watercolour')).length],
+                ['🪨 Charcoal', paths.filter(p=>p.slug==='charcoal-tonal-drawing').length],
+                ['🌈 Pastels', paths.filter(p=>p.slug==='pastel-drawing').length]
               ].filter(([,c])=>(c as number)>0).map(([label, count]) => (
                 <span key={label as string} style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', background:'rgba(255,255,255,0.05)', borderRadius:20, padding:'3px 10px' }}>
                   {label} · {count} segment{(count as number)>1?'s':''}
@@ -163,10 +165,12 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
           </div>
 
           {[
-            ['🎨 Painting', paths.filter(p=>p.slug.includes('painting'))],
-            ['✏️ Drawing', paths.filter(p=>p.slug.includes('drawing'))],
-            ['💧 Watercolour', paths.filter(p=>p.slug.includes('watercolour'))],
-            ['🪨 Charcoal', paths.filter(p=>p.slug.includes('charcoal'))]
+            ['🎨 Acrylic Painting', paths.filter(p=>p.slug.startsWith('adult-painting'))],
+            ['🛢️ Oil Painting', paths.filter(p=>p.slug.startsWith('oil-painting'))],
+            ['✏️ Drawing', paths.filter(p=>p.slug.startsWith('drawing')||p.slug==='life-drawing')],
+            ['💧 Watercolour', paths.filter(p=>p.slug.startsWith('watercolour'))],
+            ['🪨 Charcoal', paths.filter(p=>p.slug==='charcoal-tonal-drawing')],
+            ['🌈 Pastels', paths.filter(p=>p.slug==='pastel-drawing')]
           ].filter(([,tp])=>(tp as typeof paths).length>0).map(([trackLabel, trackPaths]) => (
             <div key={trackLabel as string}>
               <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1.5, color:'rgba(255,255,255,0.2)', marginBottom:10, marginTop:4 }}>{trackLabel as string}</div>
@@ -228,6 +232,10 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
                 <div style={{ marginTop:8,fontSize:12,color:'#4ade80',fontWeight:700 }}>
                   {selPath.slug?.includes('watercolour') && selPath.level==='foundation' ? "🎉 Watercolour Foundation complete! You're ready for Watercolour Intermediate." :
                    selPath.slug?.includes('watercolour') && selPath.level==='intermediate' ? "🎉 Watercolour Intermediate complete! You have a full watercolour practice." :
+                   selPath.slug?.includes('oil-painting') && selPath.level==='foundation' ? "🎉 Oil Painting Foundation complete! Ready for Oil Intermediate." :
+                   selPath.slug?.includes('oil-painting') && selPath.level==='intermediate' ? "🎉 Oil Painting Intermediate complete! You are a traditional oil painter." :
+                   selPath.slug==='life-drawing' ? "🎉 Life Drawing complete! The figure is in your hands." :
+                   selPath.slug==='pastel-drawing' ? "🎉 Pastel Foundation complete! Pure pigment mastered." :
                    selPath.slug?.includes('charcoal') ? "🎉 Charcoal course complete! A new medium mastered." :
                    selPath.slug?.includes('drawing') && selPath.level==='foundation' ? "🎉 Drawing Foundation complete! You're ready for Drawing Intermediate." :
                    selPath.slug?.includes('drawing') && selPath.level==='intermediate' ? "🎉 Drawing Intermediate complete! You're ready for Drawing Advanced." :
@@ -267,30 +275,37 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
                   const art = getArtwork(s.id)
                   return (
                     <div key={s.id} onClick={() => { if(!locked){ setSelSess(s); setView('session'); setMission(null) } }}
-                      style={{ background:isCurrent?'rgba(255,159,28,0.08)':done?'rgba(74,222,128,0.04)':'rgba(255,255,255,0.03)',border:`1px solid ${isCurrent?'rgba(255,159,28,0.3)':done?'rgba(74,222,128,0.2)':'rgba(255,255,255,0.07)'}`,borderRadius:12,padding:'14px 16px',cursor:locked?'default':'pointer',opacity:locked?0.45:1,transition:'all 0.15s',display:'flex',gap:12,alignItems:'flex-start' }}
-                      onMouseEnter={e => { if(!locked) e.currentTarget.style.borderColor=isCurrent?'rgba(255,159,28,0.5)':done?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.15)' }}
+                      style={{ background:isCurrent?'rgba(255,159,28,0.08)':done?'rgba(74,222,128,0.04)':'rgba(255,255,255,0.03)',border:`1px solid ${isCurrent?'rgba(255,159,28,0.3)':done?'rgba(74,222,128,0.2)':'rgba(255,255,255,0.07)'}`,borderRadius:12,overflow:'hidden',cursor:locked?'default':'pointer',opacity:locked?0.45:1,transition:'all 0.15s',display:'flex',alignItems:'stretch',gap:0 }}
+                      onMouseEnter={e => { if(!locked) e.currentTarget.style.borderColor=isCurrent?'rgba(255,159,28,0.5)':done?'rgba(74,222,128,0.4)':'rgba(255,255,255,0.18)' }}
                       onMouseLeave={e => { e.currentTarget.style.borderColor=isCurrent?'rgba(255,159,28,0.3)':done?'rgba(74,222,128,0.2)':'rgba(255,255,255,0.07)' }}>
 
-                      {/* Number/check + artwork thumbnail */}
-                      <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:6,flexShrink:0 }}>
-                        <div style={{ width:34,height:34,borderRadius:'50%',background:done?'rgba(74,222,128,0.2)':isCurrent?'rgba(255,159,28,0.2)':'rgba(255,255,255,0.07)',border:`2px solid ${done?'#4ade80':isCurrent?'#FF9F1C':'rgba(255,255,255,0.1)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:done?'16px':'13px',fontWeight:800,color:done?'#4ade80':isCurrent?'#FF9F1C':'rgba(255,255,255,0.4)' }}>
-                          {done ? '✓' : s.session_number}
+                      {/* Reference artwork image — left strip */}
+                      {s.image_url && (
+                        <div style={{ width:mobile?58:70, flexShrink:0, position:'relative', overflow:'hidden' }}>
+                          <img src={s.image_url} alt="" style={{ width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top',display:'block' }}/>
+                          <div style={{ position:'absolute',inset:0,background:done?'rgba(74,222,128,0.18)':isCurrent?'rgba(255,159,28,0.15)':'rgba(8,6,16,0.3)' }}/>
+                          <div style={{ position:'absolute',top:6,left:6,width:20,height:20,borderRadius:'50%',background:done?'rgba(74,222,128,0.9)':isCurrent?'rgba(255,159,28,0.9)':'rgba(0,0,0,0.6)',border:`1px solid ${done?'#4ade80':isCurrent?'#FF9F1C':'rgba(255,255,255,0.2)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:done?10:9,fontWeight:800,color:done?'#000':isCurrent?'#000':'rgba(255,255,255,0.7)' }}>
+                            {done ? '✓' : s.session_number}
+                          </div>
+                          {art && <div style={{ position:'absolute',bottom:4,left:4,right:4,height:2,borderRadius:1,background:'rgba(74,222,128,0.7)' }}/>}
                         </div>
-                        {art && <img src={art} alt="artwork" style={{ width:34,height:34,borderRadius:6,objectFit:'cover',border:'1px solid rgba(255,255,255,0.1)' }}/>}
-                      </div>
+                      )}
 
-                      <div style={{ flex:1,minWidth:0 }}>
+                      {/* Main content */}
+                      <div style={{ flex:1,minWidth:0,padding:'12px 14px' }}>
                         <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap' }}>
                           <div style={{ fontWeight:700,color:'#fff',fontSize:mobile?13:14 }}>{s.title}</div>
                           {isCurrent && <span style={{ fontSize:9,fontWeight:800,textTransform:'uppercase',letterSpacing:1,background:'rgba(255,159,28,0.2)',border:'1px solid rgba(255,159,28,0.4)',color:'#FF9F1C',borderRadius:20,padding:'2px 8px' }}>Current</span>}
+                          {done && <span style={{ fontSize:9,color:'rgba(74,222,128,0.6)' }}>✓ done</span>}
                         </div>
                         {!mobile && <div style={{ fontSize:12,color:'rgba(255,255,255,0.4)',lineHeight:1.5,marginBottom:6 }}>{s.outcome}</div>}
                         <div style={{ display:'flex',gap:8,flexWrap:'wrap',alignItems:'center' }}>
                           <span style={{ fontSize:10,background:`${domColor(s.domain)}18`,border:`1px solid ${domColor(s.domain)}30`,color:domColor(s.domain),borderRadius:20,padding:'2px 8px',fontWeight:700 }}>{s.domain.replace(/_/g,' ')}</span>
                           <span style={{ fontSize:10,color:'rgba(255,255,255,0.3)' }}>⏱ {Math.floor(s.duration_mins/60)}h{s.duration_mins%60?`${s.duration_mins%60}m`:''}</span>
+                          {art && <span style={{ fontSize:10,color:'rgba(74,222,128,0.5)' }}>🖼 artwork saved</span>}
                         </div>
                       </div>
-                      {!locked && <div style={{ color:'rgba(255,255,255,0.2)',fontSize:18,flexShrink:0,alignSelf:'center' }}>›</div>}
+                      {!locked && <div style={{ color:'rgba(255,255,255,0.2)',fontSize:18,flexShrink:0,alignSelf:'center',paddingRight:12 }}>›</div>}
                     </div>
                   )
                 })}
@@ -408,6 +423,20 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
                 <div style={{ fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:1.2,color:'rgba(255,159,28,0.7)',marginBottom:5 }}>Session Outcome</div>
                 <div style={{ fontSize:14,color:'rgba(255,255,255,0.85)',lineHeight:1.7,fontWeight:500 }}>{selSess.outcome}</div>
               </div>
+
+              {/* Reference Artwork */}
+              {selSess.image_url && (
+                <div style={{ background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,overflow:'hidden',marginBottom:18 }}>
+                  <div style={{ height:mobile?160:220, position:'relative', overflow:'hidden' }}>
+                    <img src={selSess.image_url} alt="reference artwork" style={{ width:'100%',height:'100%',objectFit:'cover',objectPosition:'center top' }}/>
+                    <div style={{ position:'absolute',inset:0,background:'linear-gradient(to top,rgba(8,6,16,0.92) 0%,rgba(8,6,16,0.1) 50%,transparent 100%)' }}/>
+                    <div style={{ position:'absolute',bottom:12,left:14,right:14 }}>
+                      <div style={{ fontSize:9,fontWeight:800,textTransform:'uppercase',letterSpacing:1.5,color:'rgba(255,159,28,0.7)',marginBottom:3 }}>Reference Artwork</div>
+                      <div style={{ fontSize:mobile?11:12,color:'rgba(255,255,255,0.7)',lineHeight:1.5 }}>Study this artwork alongside the session. Look for how it demonstrates the session&apos;s core concept.</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Activity plan */}
               <Sec title="Session Plan" color="#1ECBE1">

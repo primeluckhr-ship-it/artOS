@@ -47,13 +47,17 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
     if (tPass.length < 8) { setError('Password must be at least 8 characters'); return }
     setLoading(true); setError(null)
 
-    // 1. Create school first so we have the ID for metadata
-    const code = schoolName.toUpperCase().replace(/\s+/g, '').slice(0, 6) + Math.floor(1000 + Math.random() * 9000)
-    const { data: school, error: schoolErr } = await supabase.from('schools').insert({
-      name: schoolName, join_code: code,
-    }).select().single()
+    // 1. Create school — generate a unique join code
+    const base = schoolName.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4) || 'SCH'
+    const code = base + Math.floor(1000 + Math.random() * 9000)
+    const { data: school, error: schoolErr } = await supabase
+      .from('schools')
+      .insert({ name: schoolName, join_code: code })
+      .select('id, name, join_code')
+      .single()
     if (schoolErr || !school) {
-      setError('Could not create school: ' + (schoolErr?.message || 'unknown error'))
+      const msg = schoolErr?.message || 'Could not create school'
+      setError(msg.includes('join_code') ? 'Join code conflict — please try again' : msg)
       setLoading(false); return
     }
 
@@ -137,7 +141,7 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
       if (cls) {
         const { data: profile } = await supabase.from('profiles').select('id').eq('auth_user_id', authData.user.id).single()
         if (profile) {
-          await supabase.from('class_enrollments').insert({ student_id: profile.id, class_id: cls.id }).catch(() => {})
+          try { await supabase.from('class_enrollments').insert({ student_id: profile.id, class_id: cls.id }) } catch {}
         }
       }
 
