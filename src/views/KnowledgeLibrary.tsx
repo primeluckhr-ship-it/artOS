@@ -41,6 +41,13 @@ type LibView = 'home' | 'gallery' | 'movement' | 'artwork' | 'timeline' | 'searc
 
 export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
   const [view, setView]           = useState<LibView>('home')
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    const handler = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+  const mobile = windowWidth < 680
   const [articles, setArticles]   = useState<Article[]>([])
   const [pieces, setPieces]       = useState<Masterpiece[]>([])
   const [selArticle, setSelArt]   = useState<Article | null>(null)
@@ -307,7 +314,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
           </div>
 
           <div style={{ maxWidth:1100, margin:'0 auto', padding:'40px 40px 60px' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 380px', gap:48, alignItems:'start' }}>
+            <div style={{ display:'grid', gridTemplateColumns:mobile?'1fr':'1fr 380px', gap:mobile?24:48, alignItems:'start' }}>
 
               {/* Left: article content */}
               <div>
@@ -460,9 +467,9 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
           ARTWORK detail — museum lightbox
           ══════════════════════════════════════════════════════════════ */}
       {view === 'artwork' && selPiece && (
-        <div style={{ animation:'fadeIn 0.3s ease', display:'flex', height:'calc(100vh - 100px)', minHeight:600 }}>
+        <div style={{ animation:'fadeIn 0.3s ease', display:'flex', flexDirection:mobile?'column':'row', height:mobile?'auto':'calc(100vh - 100px)', minHeight:mobile?0:600 }}>
           {/* Left: image */}
-          <div style={{ flex:'1 1 60%', position:'relative', background:'#050408', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', cursor:zoomed?'zoom-out':'zoom-in' }} onClick={() => setZoomed(z => !z)}>
+          <div style={{ flex:mobile?'0 0 300px':'1 1 60%', position:'relative', background:'#050408', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', cursor:zoomed?'zoom-out':'zoom-in', height:mobile?300:undefined }} onClick={() => setZoomed(z => !z)}>
             <img src={selPiece.image_url||''} alt={selPiece.title} style={{ maxWidth: zoomed?'none':'90%', maxHeight: zoomed?'none':'90%', width:zoomed?'auto':'auto', height:zoomed?'140%':'auto', objectFit:'contain', transition:'all 0.4s ease', display:'block' }} onError={e => { (e.target as HTMLImageElement).src=''; e.currentTarget.parentElement!.style.background='rgba(255,159,28,0.06)' }}/>
             <div style={{ position:'absolute', bottom:12, right:12, fontSize:10, color:'rgba(255,255,255,0.25)', background:'rgba(0,0,0,0.4)', borderRadius:6, padding:'4px 8px' }}>{zoomed?'Click to zoom out':'Click to zoom'}</div>
           </div>
@@ -587,7 +594,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
               {searchRes.pieces.length > 0 && (
                 <div style={{ marginBottom:40 }}>
                   <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.3, color:'rgba(255,255,255,0.3)', margin:'20px 0 14px' }}>Artworks ({searchRes.pieces.length})</div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:16 }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(mobile?140:220px,1fr))', gap:12 }}>
                     {searchRes.pieces.map(p => <ArtworkCard key={p.id} p={p} onClick={() => openPiece(p)} size="large"/>)}
                   </div>
                 </div>
@@ -595,7 +602,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
               {searchRes.articles.length > 0 && (
                 <div>
                   <div style={{ fontSize:11, fontWeight:800, textTransform:'uppercase', letterSpacing:1.3, color:'rgba(255,255,255,0.3)', marginBottom:14 }}>Articles ({searchRes.articles.length})</div>
-                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:12 }}>
+                  <div style={{ display:'grid', gridTemplateColumns:mobile?'repeat(2,1fr)':'repeat(auto-fill,minmax(200px,1fr))', gap:10 }}>
                     {searchRes.articles.map(a => {
                       const hero = movementPieces(a.slug)[0]?.image_url || a.image_url || CAT_IMAGES[a.category]
                       return (
