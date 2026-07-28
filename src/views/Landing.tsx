@@ -47,7 +47,7 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
     if (tPass.length < 8) { setError('Password must be at least 8 characters'); return }
     setLoading(true); setError(null)
 
-    // 1. Create school via server-side function (bypasses RLS on anon session)
+    // 1. Create the school first to get its join_code
     const schRes = await fetch(
       `https://hpyznfxnltreviijyhct.supabase.co/functions/v1/create-school`,
       {
@@ -62,39 +62,30 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
       setError(schJson.error || 'Could not create school')
       setLoading(false); return
     }
-    const school = schJson
 
-    // 2. Create auth user — pass all profile data as metadata so the
-    //    DB trigger can create the profile even if email confirmation
-    //    is enabled and we don't yet have an active session.
-    const { data: authData, error: authErr } = await supabase.auth.signUp({
-      email: tEmail, password: tPass,
-      options: { data: { name: tName, role: 'teacher', school_id: school.id } },
-    })
-    if (authErr || !authData.user) {
-      setError(authErr?.message || 'Account creation failed')
+    // 2. Create user via admin API — no email confirmation required
+    const signupRes = await fetch(
+      `https://hpyznfxnltreviijyhct.supabase.co/functions/v1/public-signup`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhweXpuZnhubHRyZXZpaWp5aGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3OTU2MzAsImV4cCI6MjA5ODM3MTYzMH0.IcAVafpZzPFxi1hK5exfIljt2Y-sd1Xz2LurlcimlNw' },
+        body: JSON.stringify({ email: tEmail, password: tPass, name: tName, role: 'teacher', join_code: schJson.join_code }),
+      }
+    )
+    const signupJson = await signupRes.json()
+    if (!signupRes.ok || !signupJson.success) {
+      setError(signupJson.error || 'Account creation failed')
       setLoading(false); return
     }
 
-    // 3. If we got a session (email confirmation disabled), also insert
-    //    profile directly — belt and braces alongside the trigger.
-    if (authData.session) {
-      const { error: profErr } = await supabase.from('profiles').insert({
-        auth_user_id: authData.user.id,
-        school_id: school.id,
-        name: tName,
-        role: 'teacher',
-      })
-      if (profErr && !profErr.message.includes('duplicate')) {
-        console.warn('Profile insert warning:', profErr.message)
-      }
-      onSignIn()
-      return
+    // 3. Immediately sign them in — no email step needed
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: tEmail, password: tPass })
+    if (signInErr) {
+      setSuccess(`Account created! Your school join code is ${schJson.join_code}. Sign in now.`)
+      setLoading(false); return
     }
-
-    // 4. No session means email confirmation is required
-    setSuccess(`Account created! Your join code is ${school.join_code}. Check your email to confirm your account, then sign in.`)
-    setLoading(false)
+    onSignIn()
   }
 
   // ── Student Signup ─────────────────────────────────────────────
@@ -103,58 +94,33 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
     if (sPass.length < 8) { setError('Password must be at least 8 characters'); return }
     setLoading(true); setError(null)
 
-    // 1. Validate join code
-    const { data: school, error: schoolErr } = await supabase
-      .from('schools').select('id, name')
-      .eq('join_code', joinCode.trim().toUpperCase()).single()
-    if (schoolErr || !school) {
-      setError('Join code not recognised — check with your teacher (must be exactly ' + joinCode.trim().toUpperCase() + ')')
-      setLoading(false); return
-    }
-
-    // 2. Create auth user with full metadata for the trigger
-    const { data: authData, error: authErr } = await supabase.auth.signUp({
-      email: sEmail, password: sPass,
-      options: { data: { name: sName, role: 'student', school_id: school.id, hint_credits: 5 } },
-    })
-    if (authErr) {
+    // 1. Create user via admin API — validates join code + no email confirmation
+    const signupRes = await fetch(
+      `https://hpyznfxnltreviijyhct.supabase.co/functions/v1/public-signup`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhweXpuZnhubHRyZXZpaWp5aGN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3OTU2MzAsImV4cCI6MjA5ODM3MTYzMH0.IcAVafpZzPFxi1hK5exfIljt2Y-sd1Xz2LurlcimlNw' },
+        body: JSON.stringify({ email: sEmail, password: sPass, name: sName, role: 'student', join_code: joinCode.trim().toUpperCase() }),
+      }
+    )
+    const signupJson = await signupRes.json()
+    if (!signupRes.ok || !signupJson.success) {
       setError(
-        authErr.message.includes('already registered') ? 'That email already has an account — try signing in instead' :
-        authErr.message
+        signupJson.error?.includes('join code') ? `Join code "${joinCode.toUpperCase()}" not found — check with your teacher` :
+        signupJson.error?.includes('already exists') ? 'That email already has an account — try signing in instead' :
+        signupJson.error || 'Account creation failed'
       )
       setLoading(false); return
     }
-    if (!authData.user) { setError('Account creation failed — try again'); setLoading(false); return }
 
-    // 3. Session available → insert profile directly + sign in
-    if (authData.session) {
-      const { error: profErr } = await supabase.from('profiles').insert({
-        auth_user_id: authData.user.id,
-        school_id: school.id,
-        name: sName,
-        role: 'student',
-        hint_credits: 5,
-      })
-      if (profErr && !profErr.message.includes('duplicate')) {
-        console.warn('Profile insert warning:', profErr.message)
-      }
-
-      // Enrol in first available class (non-fatal if it fails)
-      const { data: cls } = await supabase.from('classes').select('id').eq('school_id', school.id).limit(1).single()
-      if (cls) {
-        const { data: profile } = await supabase.from('profiles').select('id').eq('auth_user_id', authData.user.id).single()
-        if (profile) {
-          try { await supabase.from('class_enrollments').insert({ student_id: profile.id, class_id: cls.id }) } catch {}
-        }
-      }
-
-      onSignIn()
-      return
+    // 2. Immediately sign them in — no email step needed
+    const { error: signInErr } = await supabase.auth.signInWithPassword({ email: sEmail, password: sPass })
+    if (signInErr) {
+      setSuccess(`Welcome to ${signupJson.school_name}! Account created. Sign in now with your email and password.`)
+      setLoading(false); return
     }
-
-    // 4. No session → email confirmation required
-    setSuccess(`Welcome to ${school.name}! Check your email to confirm your account, then come back and sign in.`)
-    setLoading(false)
+    onSignIn()
   }
 
   function demo(role: 'teacher' | 'student') {
