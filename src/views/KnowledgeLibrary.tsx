@@ -80,29 +80,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
   async function openMovement(a: Article) {
     setSelArt(a); setArtCont(a.content); setView('movement')
     supabase.from('knowledge_articles').update({ view_count: (a.view_count||0)+1 }).eq('id', a.id)
-    if (!a.content) await generateArticle(a)
-  }
-
-  async function generateArticle(a: Article) {
-    setGen(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token || ANON_KEY}` },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6', max_tokens: 4000,
-          messages: [{ role: 'user', content: buildArticlePrompt(a) }],
-        }),
-      })
-      const data = await res.json()
-      const text = data?.content?.[0]?.text || ''
-      const content = JSON.parse(text.replace(/```json|```/g, '').trim())
-      await supabase.from('knowledge_articles').update({ content, generated_at: new Date().toISOString() }).eq('id', a.id)
-      setArtCont(content)
-      setArticles(prev => prev.map(x => x.id === a.id ? { ...x, content } : x))
-    } catch(e) { console.error(e) }
-    setGen(false)
+    // No auto-generation — articles display existing content only
   }
 
   // ── Open artwork detail ──────────────────────────────────────
@@ -172,6 +150,8 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
     if (!eraGroups[e]) eraGroups[e] = []
     eraGroups[e].push(m)
   }
+  const genreArticles = articles.filter(a => a.category === 'art-and-genre')
+  const africanArtists = articles.filter(a => a.category === 'artists' && (a.subcategory || '').toLowerCase().includes('african'))
   const featuredPieces = pieces.filter(p => p.is_featured)
 
   return (
@@ -291,6 +271,45 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
               ))}
             </div>
           </div>
+
+          {/* ── African Artists ─────────────────────────────────── */}
+          {africanArtists.length > 0 && (
+            <div style={{ padding:'32px 32px 0' }}>
+              <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, color:'#fff', margin:'0 0 6px' }}>African Artists</h2>
+              <p style={{ color:'rgba(255,255,255,0.38)', fontSize:12, margin:'0 0 20px' }}>Celebrating the continent's living and historical practitioners</p>
+              <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+                {africanArtists.map(a => (
+                  <button key={a.slug} onClick={() => openMovement(a)} style={{ position:'relative', width:180, height:130, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', flexShrink:0, background:'#1a1030', padding:0, textAlign:'left' }}>
+                    <img src={a.image_url || CAT_IMAGES.artists} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block' }}/>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, rgba(8,6,16,0.2) 100%)' }}/>
+                    <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 10px 10px' }}>
+                      <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:12, fontWeight:700, color:'#fff', lineHeight:1.2 }}>{a.title}</div>
+                      {a.subcategory && <div style={{ fontSize:9, color:'rgba(255,159,28,0.6)', marginTop:2 }}>{a.subcategory}</div>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Art + Genre ─────────────────────────────────────── */}
+          {genreArticles.length > 0 && (
+            <div style={{ padding:'32px' }}>
+              <h2 style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:22, color:'#fff', margin:'0 0 6px' }}>Art in Dialogue</h2>
+              <p style={{ color:'rgba(255,255,255,0.38)', fontSize:12, margin:'0 0 20px' }}>Where art crosses into music, medicine, technology, sport, culture and beyond</p>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:12 }}>
+                {genreArticles.map(a => (
+                  <button key={a.slug} onClick={() => openMovement(a)} style={{ position:'relative', height:110, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', background:'#1a1030', padding:0, textAlign:'left' }}>
+                    <img src={a.image_url || CAT_IMAGES.movements} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block', transition:'transform 0.4s ease' }} onMouseOver={e => (e.currentTarget.style.transform='scale(1.06)')} onMouseOut={e => (e.currentTarget.style.transform='scale(1)')}/>
+                    <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.92) 0%, rgba(8,6,16,0.2) 100%)' }}/>
+                    <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 10px 10px' }}>
+                      <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:12, fontWeight:700, color:'#fff', lineHeight:1.2 }}>{a.title}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -329,9 +348,11 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                 )}
 
                 {!artContent && !generating && (
-                  <button onClick={() => generateArticle(selArticle)} style={{ padding:'12px 24px', background:'linear-gradient(135deg,#FF9F1C,#FF6B35)', border:'none', borderRadius:12, color:'#fff', fontSize:14, fontFamily:"'Fredoka One',sans-serif", cursor:'pointer', marginBottom:32 }}>
-                    ✦ Generate Article
-                  </button>
+                  <div style={{ padding:'20px 24px', background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, marginBottom:32 }}>
+                    <div style={{ fontSize:13, color:'rgba(255,255,255,0.4)', lineHeight:1.6 }}>
+                      Full article content is being prepared for this topic. Check back soon, or explore the artworks and related movements in the gallery.
+                    </div>
+                  </div>
                 )}
 
                 {artContent && (

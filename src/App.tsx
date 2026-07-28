@@ -40,6 +40,35 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [showTour, setShowTour] = useState(false)
   const [view, setView] = useState<View>('class')
+  const [viewHistory, setViewHistory] = useState<View[]>([])
+
+  // Navigate preserving back-stack
+  function navigate(v: View) {
+    setViewHistory(h => [...h, view])
+    setView(v)
+    window.history.pushState({ v }, '', '')
+  }
+
+  // Handle Android / browser back button
+  useEffect(() => {
+    // Seed one extra state so our popstate fires before the browser leaves the page
+    window.history.pushState({ v: view }, '', '')
+    function onPop() {
+      setViewHistory(h => {
+        if (h.length === 0) {
+          // nothing to go back to — push again to keep us on the page
+          window.history.pushState({ v: view }, '', '')
+          return h
+        }
+        const prev = h[h.length - 1]
+        setView(prev)
+        window.history.pushState({ v: prev }, '', '')
+        return h.slice(0, -1)
+      })
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, []) // eslint-disable-line
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -68,16 +97,16 @@ export default function App() {
   const isAdmin = ['school_admin', 'platform_admin', 'teacher'].includes(profile.role)
 
   const navItems: { key: View; Icon: React.FC<{ size?: number; color?: string }>; label: string; color: string; show: boolean }[] = [
-    { key: 'class',     Icon: ClassIcon,     label: 'Class',     color: '#4ade80', show: isTeacher },
-    { key: 'lessons',   Icon: LessonsIcon,   label: 'Lessons',   color: '#FF6B35', show: true },
-    { key: 'teacher',   Icon: CreateIcon,    label: 'Create',    color: '#FF9F1C', show: isTeacher },
-    { key: 'student',   Icon: MissionIcon,   label: 'Mission',   color: '#1ECBE1', show: true },
-    { key: 'paths' as View,     Icon: LessonsIcon, label: 'Courses',  color: '#4ade80', show: true },
-    { key: 'knowledge' as View, Icon: LessonsIcon, label: 'Library', color: '#FF9F1C', show: true },
-    { key: 'clans',     Icon: ClansIcon,     label: 'Clans',     color: '#f472b6', show: true },
-    { key: 'portfolio', Icon: PortfolioIcon, label: 'Portfolio', color: '#a78bfa', show: true },
-    { key: 'report' as View,    Icon: PortfolioIcon, label: 'Report',  color: '#f9a8d4', show: true },
-    { key: 'admin',     Icon: AdminIcon,     label: 'Admin',     color: '#8B5CF6', show: isAdmin },
+    { key: 'class' as View,     Icon: ClassIcon,     label: 'Class',     color: '#4ade80', show: isTeacher },
+    { key: 'lessons' as View,   Icon: LessonsIcon,   label: 'Lessons',   color: '#FF6B35', show: true },
+    { key: 'teacher' as View,   Icon: CreateIcon,    label: 'Create',    color: '#FF9F1C', show: isTeacher },
+    { key: 'student' as View,   Icon: MissionIcon,   label: 'Mission',   color: '#1ECBE1', show: true },
+    { key: 'paths' as View,     Icon: LessonsIcon,   label: 'Courses',   color: '#4ade80', show: true },
+    { key: 'knowledge' as View, Icon: LessonsIcon,   label: 'Library',   color: '#FF9F1C', show: true },
+    { key: 'clans' as View,     Icon: ClansIcon,     label: 'Clans',     color: '#f472b6', show: true },
+    { key: 'portfolio' as View, Icon: PortfolioIcon, label: 'Portfolio', color: '#a78bfa', show: true },
+    { key: 'report' as View,    Icon: PortfolioIcon, label: 'Report',    color: '#f9a8d4', show: true },
+    { key: 'admin' as View,     Icon: AdminIcon,     label: 'Admin',     color: '#8B5CF6', show: isAdmin },
   ].filter(i => i.show)
 
   return (
@@ -93,13 +122,13 @@ export default function App() {
       `}</style>
 
       <ArtBackground />
-      <NavBar profile={profile} view={view} setView={setView} navItems={navItems} />
+      <NavBar profile={profile} view={view} setView={navigate} navItems={navItems} />
       {showTour && profile && <OnboardingTour profile={profile} onDone={() => setShowTour(false)} />}
       <main style={{ flex: 1, paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
         {view === 'class'     && isTeacher  && <ClassDashboard profile={profile} />}
         {view === 'lessons'                 && <LessonLibrary profile={profile} />}
         {view === 'teacher'   && isTeacher  && <TeacherView profile={profile} />}
-        {view === 'student'                 && <StudentView profile={profile} onNavigateCourses={() => setView('paths')} />}
+        {view === 'student'                 && <StudentView profile={profile} onNavigateCourses={() => navigate('paths')} />}
         {view === 'clans'                   && <ClansView profile={profile} />}
         {view === 'portfolio'               && <PortfolioView profile={profile} />}
         {view === 'admin'     && isAdmin    && <AdminPanel profile={profile} />}

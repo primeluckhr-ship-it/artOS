@@ -141,12 +141,16 @@ export async function submitCompletion(params: {
 
   // Upload photo if provided
   if (photo) {
-    const ext = photo.name.split('.').pop()
-    const path = `${student_id}/${Date.now()}.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from('artwork-media')
-      .upload(path, photo)
-    if (!uploadError) media_url = path
+    const { data: { user } } = await supabase.auth.getUser()
+    const authId = user?.id
+    if (authId) {
+      const ext = photo.name.split('.').pop()
+      const path = `${authId}/${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('artwork-media')
+        .upload(path, photo)
+      if (!uploadError) media_url = path
+    }
   }
 
   // Insert artwork row if we have a photo

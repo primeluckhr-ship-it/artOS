@@ -103,8 +103,10 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
 
     if (withArtwork && uploadFile) {
       setUploading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+      const authId = user?.id || profile.id
       const ext = uploadFile.name.split('.').pop() || 'jpg'
-      const path = `${profile.id}/${sess.id}.${ext}`
+      const path = `${authId}/${sess.id}.${ext}`
       const { error } = await supabase.storage.from('session-artworks').upload(path, uploadFile, { upsert: true, contentType: uploadFile.type })
       if (!error) artwork_url = `${STORAGE_URL}/${path}`
       setUploading(false)
