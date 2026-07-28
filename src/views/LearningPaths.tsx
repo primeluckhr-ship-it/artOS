@@ -11,7 +11,8 @@ const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 const STORAGE_URL = `${SUPABASE_URL}/storage/v1/object/public/session-artworks`
 
 interface Path { id:string; slug:string; title:string; subtitle:string; description:string; level:string; total_sessions:number; price_kes:number; class_size_min:number; class_size_max:number; duration_weeks:number; materials:string[] }
-interface Session { id:string; session_number:number; title:string; outcome:string; activities:string[]; mini_outcome:string; domain:string; difficulty:string; duration_mins:number; materials:string[]; instructor_notes:string; demo_duration_mins:number; image_url:string }
+interface TechniqueGuide { label:string; caption:string; image_url:string }
+interface Session { id:string; session_number:number; title:string; outcome:string; activities:string[]; mini_outcome:string; domain:string; difficulty:string; duration_mins:number; materials:string[]; instructor_notes:string; demo_duration_mins:number; image_url:string; technique_guides:TechniqueGuide[] }
 interface Progress { session_id:string; completed:boolean; completed_at:string|null; artwork_url:string|null }
 interface StudentRoster { id:string; name:string; progress: Progress[] }
 
@@ -442,6 +443,29 @@ export default function LearningPaths({ profile }: { profile: Profile }) {
                       <div style={{ fontSize:9,fontWeight:800,textTransform:'uppercase',letterSpacing:1.5,color:'rgba(255,159,28,0.7)',marginBottom:3 }}>Reference Artwork</div>
                       <div style={{ fontSize:mobile?11:12,color:'rgba(255,255,255,0.7)',lineHeight:1.5 }}>Study this artwork alongside the session. Look for how it demonstrates the session&apos;s core concept.</div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Technique Guide Strip ── */}
+              {(selSess.technique_guides||[]).length > 0 && (
+                <div style={{ marginBottom:18 }}>
+                  <div style={{ fontSize:10,fontWeight:800,textTransform:'uppercase',letterSpacing:1.5,color:'rgba(255,159,28,0.7)',marginBottom:10 }}>Technique Guide</div>
+                  <div style={{ display:'flex',gap:12,overflowX:'auto',paddingBottom:8,scrollbarWidth:'none' }}>
+                    {(selSess.technique_guides||[]).map((guide,i) => (
+                      <div key={i} style={{ minWidth:mobile?230:280,flexShrink:0,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:14,overflow:'hidden' }}>
+                        <div style={{ height:mobile?110:140,position:'relative',overflow:'hidden' }}>
+                          <img src={guide.image_url} alt={guide.label} style={{ width:'100%',height:'100%',objectFit:'cover',objectPosition:'center',display:'block' }}/>
+                          <div style={{ position:'absolute',inset:0,background:'linear-gradient(to top,rgba(8,6,16,0.88) 0%,transparent 60%)' }}/>
+                          <div style={{ position:'absolute',bottom:10,left:12,right:12 }}>
+                            <div style={{ fontSize:mobile?12:13,fontWeight:800,color:'#FF9F1C',fontFamily:"'Fredoka One',sans-serif",lineHeight:1.2 }}>{guide.label}</div>
+                          </div>
+                        </div>
+                        <div style={{ padding:'10px 12px' }}>
+                          <div style={{ fontSize:mobile?11:12,color:'rgba(255,255,255,0.65)',lineHeight:1.65 }}>{guide.caption}</div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

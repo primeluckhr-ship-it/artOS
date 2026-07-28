@@ -139,6 +139,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
 
   // ── Helpers ──────────────────────────────────────────────────
   const movementPieces = (slug: string) => pieces.filter(p => p.movement_slug === slug)
+  const artistPieces  = (slug: string) => pieces.filter(p => p.artist_slug === slug)
   const catColor = (cat: string): string => ({
     fundamentals:'#1ECBE1', drawing:'#f9a8d4', painting:'#FF6B35', materials:'#4ade80',
     movements:'#FF9F1C', artists:'#a78bfa', styles:'#FFE135', museums:'#fb923c',
@@ -320,7 +321,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
         <div style={{ animation:'fadeIn 0.3s ease' }}>
           {/* Hero */}
           <div style={{ position:'relative', height:'55vh', minHeight:360, overflow:'hidden' }}>
-            <img src={movementPieces(selArticle.slug)[0]?.image_url || selArticle.image_url || CAT_IMAGES.movements} alt={selArticle.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%', display:'block' }}/>
+            <img src={(selArticle.category==='artists' ? artistPieces(selArticle.slug)[0]?.image_url : movementPieces(selArticle.slug)[0]?.image_url) || selArticle.image_url || CAT_IMAGES[selArticle.category] || CAT_IMAGES.movements} alt={selArticle.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%', display:'block' }}/>
             <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, #080610 0%, rgba(8,6,16,0.6) 50%, rgba(8,6,16,0.2) 100%)' }}/>
             <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 48px 40px' }}>
               <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:2, color:'#FF9F1C', marginBottom:8 }}>Art Movement</div>
@@ -492,6 +493,29 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                             <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:13, color:'#fff', fontWeight:700, lineHeight:1.3 }}>{p.title}</div>
                             <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:2, fontStyle:'italic' }}>{p.artist}</div>
                             <div style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:1 }}>{p.year} · {p.museum}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Artist gallery — grid of all their works */}
+                {selArticle.category === 'artists' && artistPieces(selArticle.slug).length > 0 && (
+                  <div>
+                    <H2>Works in the Collection</H2>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10 }}>
+                      {artistPieces(selArticle.slug).map(p => (
+                        <div key={p.id} onClick={() => openPiece(p)} style={{ cursor:'pointer', borderRadius:12, overflow:'hidden', border:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.02)', transition:'transform 0.15s, border-color 0.15s' }}
+                          onMouseEnter={e => { e.currentTarget.style.transform='scale(1.02)'; e.currentTarget.style.borderColor='rgba(167,139,250,0.35)' }}
+                          onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.07)' }}>
+                          <div style={{ height:130, background:'rgba(0,0,0,0.4)', position:'relative', overflow:'hidden' }}>
+                            <img src={p.image_url||''} alt={p.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block' }}/>
+                            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top,rgba(8,6,16,0.85) 0%,transparent 60%)' }}/>
+                          </div>
+                          <div style={{ padding:'8px 10px' }}>
+                            <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:12, color:'#fff', fontWeight:700, lineHeight:1.3, marginBottom:2 }}>{p.title}</div>
+                            <div style={{ fontSize:10, color:'rgba(255,255,255,0.3)' }}>{p.year}{p.museum ? ` · ${p.museum}` : ''}</div>
                           </div>
                         </div>
                       ))}
