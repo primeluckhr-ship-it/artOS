@@ -198,7 +198,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
           {/* Hero — featured masterpiece */}
           {featuredPieces[0] && (
             <div style={{ position:'relative', height:'60vh', minHeight:400, cursor:'pointer', overflow:'hidden' }} onClick={() => openPiece(featuredPieces[0])}>
-              <img src={featuredPieces[0].image_url||''} alt={featuredPieces[0].title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 20%', display:'block', transition:'transform 8s ease' }}/>
+              <img src={featuredPieces[0].image_url||''} alt={featuredPieces[0].title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 20%', display:'block', transition:'transform 8s ease' }} onError={e => { (e.currentTarget as HTMLImageElement).style.display='none' }}/>
               <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, #080610 0%, rgba(8,6,16,0.5) 50%, rgba(8,6,16,0.15) 100%)' }}/>
               <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 48px 48px' }}>
                 <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:2, color:'rgba(255,159,28,0.8)', marginBottom:10 }}>Featured Masterpiece</div>
@@ -238,7 +238,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                     const heroImg = mPieces[0]?.image_url || a.image_url || CAT_IMAGES.movements
                     return (
                       <button key={a.slug} onClick={() => openMovement(a)} style={{ position:'relative', width:200, height:130, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', flexShrink:0, background:'#1a1030', padding:0, textAlign:'left' }}>
-                        <img src={heroImg} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block', transition:'transform 0.5s ease' }} onMouseOver={e => (e.currentTarget.style.transform='scale(1.08)')} onMouseOut={e => (e.currentTarget.style.transform='scale(1)')}/>
+                        <img src={heroImg} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block', transition:'transform 0.5s ease' }} onMouseOver={e => (e.currentTarget.style.transform='scale(1.08)')} onMouseOut={e => (e.currentTarget.style.transform='scale(1)')} onError={e => { const t=e.currentTarget; if(t.src !== CAT_IMAGES[a.category] && t.src !== CAT_IMAGES.movements){ t.src=CAT_IMAGES[a.category]||CAT_IMAGES.movements } }}/>
                         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, rgba(8,6,16,0.3) 60%, transparent 100%)' }}/>
                         <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 12px 12px' }}>
                           <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:14, fontWeight:700, color:'#fff', lineHeight:1.2 }}>{a.title}</div>
@@ -281,7 +281,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
               <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
                 {africanArtists.map(a => (
                   <button key={a.slug} onClick={() => openMovement(a)} style={{ position:'relative', width:180, height:130, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', flexShrink:0, background:'#1a1030', padding:0, textAlign:'left' }}>
-                    <img src={a.image_url || CAT_IMAGES.artists} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block' }}/>
+                    <img src={a.image_url || CAT_IMAGES.artists} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center top', display:'block' }} onError={e => { const t=e.currentTarget; if(t.src!==CAT_IMAGES.artists) t.src=CAT_IMAGES.artists }}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, rgba(8,6,16,0.2) 100%)' }}/>
                     <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 10px 10px' }}>
                       <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:12, fontWeight:700, color:'#fff', lineHeight:1.2 }}>{a.title}</div>
@@ -301,7 +301,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(150px, 1fr))', gap:12 }}>
                 {genreArticles.map(a => (
                   <button key={a.slug} onClick={() => openMovement(a)} style={{ position:'relative', height:110, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', background:'#1a1030', padding:0, textAlign:'left' }}>
-                    <img src={a.image_url || CAT_IMAGES.movements} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block', transition:'transform 0.4s ease' }} onMouseOver={e => (e.currentTarget.style.transform='scale(1.06)')} onMouseOut={e => (e.currentTarget.style.transform='scale(1)')}/>
+                    <img src={a.image_url || CAT_IMAGES.movements} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block', transition:'transform 0.4s ease' }} onMouseOver={e => (e.currentTarget.style.transform='scale(1.06)')} onMouseOut={e => (e.currentTarget.style.transform='scale(1)')} onError={e => { const t=e.currentTarget; if(t.src!==CAT_IMAGES.movements) t.src=CAT_IMAGES.movements }}/>
                     <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.92) 0%, rgba(8,6,16,0.2) 100%)' }}/>
                     <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 10px 10px' }}>
                       <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:12, fontWeight:700, color:'#fff', lineHeight:1.2 }}>{a.title}</div>
@@ -321,7 +321,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
         <div style={{ animation:'fadeIn 0.3s ease' }}>
           {/* Hero */}
           <div style={{ position:'relative', height:'55vh', minHeight:360, overflow:'hidden' }}>
-            <img src={(selArticle.category==='artists' ? artistPieces(selArticle.slug)[0]?.image_url : movementPieces(selArticle.slug)[0]?.image_url) || selArticle.image_url || CAT_IMAGES[selArticle.category] || CAT_IMAGES.movements} alt={selArticle.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%', display:'block' }}/>
+            <img src={(selArticle.category==='artists' ? artistPieces(selArticle.slug)[0]?.image_url : movementPieces(selArticle.slug)[0]?.image_url) || selArticle.image_url || CAT_IMAGES[selArticle.category] || CAT_IMAGES.movements} alt={selArticle.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center 30%', display:'block' }} onError={e => { const t=e.currentTarget; const fb=CAT_IMAGES[selArticle.category]||CAT_IMAGES.movements; if(t.src!==fb) t.src=fb }}/>
             <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, #080610 0%, rgba(8,6,16,0.6) 50%, rgba(8,6,16,0.2) 100%)' }}/>
             <div style={{ position:'absolute', bottom:0, left:0, right:0, padding:'0 48px 40px' }}>
               <div style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:2, color:'#FF9F1C', marginBottom:8 }}>Art Movement</div>
@@ -632,7 +632,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                   const hero = movementPieces(a.slug)[0]?.image_url || a.image_url || CAT_IMAGES.movements
                   return (
                     <button key={a.slug} onClick={() => openMovement(a)} style={{ minWidth:200, height:140, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', flexShrink:0, background:'#1a1030', padding:0, position:'relative' }}>
-                      <img src={hero} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }}/>
+                      <img src={hero} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'center', display:'block' }} onError={e => { const t=e.currentTarget; const fb=CAT_IMAGES[a.category]||CAT_IMAGES.movements; if(t.src!==fb) t.src=fb }}/>
                       <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, transparent 60%)' }}/>
                       <div style={{ position:'absolute', bottom:10, left:12, right:12 }}>
                         <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:14, fontWeight:700, color:'#fff' }}>{a.title}</div>
@@ -672,7 +672,7 @@ export default function KnowledgeLibrary({ profile }: { profile: Profile }) {
                       const hero = movementPieces(a.slug)[0]?.image_url || a.image_url || CAT_IMAGES[a.category]
                       return (
                         <button key={a.slug} onClick={() => a.category==='movements' ? openMovement(a) : undefined} style={{ position:'relative', height:130, borderRadius:12, overflow:'hidden', cursor:'pointer', border:'1px solid rgba(255,255,255,0.08)', background:'#1a1030', padding:0, textAlign:'left' }}>
-                          <img src={hero} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
+                          <img src={hero} alt={a.title} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e => { const t=e.currentTarget; const fb=CAT_IMAGES[a.category]||CAT_IMAGES.movements; if(t.src!==fb) t.src=fb }}/>
                           <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(8,6,16,0.9) 0%, transparent 60%)' }}/>
                           <div style={{ position:'absolute', bottom:10, left:12, right:12 }}>
                             <div style={{ fontFamily:"'Playfair Display',Georgia,serif", fontSize:13, fontWeight:700, color:'#fff' }}>{a.title}</div>
