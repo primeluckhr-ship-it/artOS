@@ -29,15 +29,24 @@ export default function Landing({ onSignIn }: { onSignIn: () => void }) {
   async function signIn() {
     if (!email || !password) { setError('Enter email and password'); return }
     setLoading(true); setError(null)
-    const { error: e } = await supabase.auth.signInWithPassword({ email, password })
-    if (e) {
+
+    // Race against 15 second timeout so the button never freezes permanently
+    const authResult = await Promise.race([
+      supabase.auth.signInWithPassword({ email, password }),
+      new Promise<{error: Error}>(res => setTimeout(() => res({ error: new Error('timeout') }), 15000))
+    ]) as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>
+
+    if (authResult.error) {
+      const msg = authResult.error.message
       setError(
-        e.message.includes('Invalid login') ? 'Incorrect email or password' :
-        e.message.includes('Email not confirmed') ? 'Please confirm your email first — check your inbox' :
-        e.message
+        msg === 'timeout' ? 'Connection timed out — check your internet and try again' :
+        msg.includes('Invalid login') ? 'Incorrect email or password' :
+        msg.includes('Email not confirmed') ? 'Account not confirmed — sign up again with a real email' :
+        msg
       )
       setLoading(false); return
     }
+    setLoading(false)
     onSignIn()
   }
 

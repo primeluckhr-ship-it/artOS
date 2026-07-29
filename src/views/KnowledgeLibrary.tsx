@@ -25,7 +25,7 @@ interface Article {
 
 // ── Movement hero images (curated category backgrounds) ──────────
 const CAT_IMAGES: Record<string, string> = {
-  movements:    'https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg/1280px-%22The_School_of_Athens%22_by_Raffaello_Sanzio_da_Urbino.jpg',
+  movements:    'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/The_Night_Watch_-_HD.jpg/1280px-The_Night_Watch_-_HD.jpg',
   artists:      'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/1665_Girl_with_a_Pearl_Earring.jpg/800px-1665_Girl_with_a_Pearl_Earring.jpg',
   fundamentals: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/6b/Twittering_Machine.jpg/800px-Twittering_Machine.jpg',
   drawing:      'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Qi_Baishi_shrimps.jpg/800px-Qi_Baishi_shrimps.jpg',
@@ -33,6 +33,7 @@ const CAT_IMAGES: Record<string, string> = {
   materials:    'https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Vincent_van_Gogh_-_Sunflowers_-_VGM_F458.jpg/1024px-Vincent_van_Gogh_-_Sunflowers_-_VGM_F458.jpg',
   styles:       'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/1280px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg',
   museums:      'https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Pierre-Auguste_Renoir_-_Luncheon_of_the_Boating_Party_-_Google_Art_Project.jpg/1280px-Pierre-Auguste_Renoir_-_Luncheon_of_the_Boating_Party_-_Google_Art_Project.jpg',
+  'art-and-genre': 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/The_Night_Watch_-_HD.jpg/1280px-The_Night_Watch_-_HD.jpg',
 }
 
 const ERA_ORDER = ['Ancient','Medieval','Renaissance','Baroque & Rococo','Neoclassicism','Romanticism','19th Century','Early Modern','Modern','Contemporary']
